@@ -6,6 +6,8 @@ uint64_t __cache_line_shift;  /* log2(__cache_line_size) */
 uint8_t __dc_zero_allow;  /* DC ZVA allow ? */
 uint64_t __dc_zero_block_width;  /* size of DC ZVA block */
 
+uint64_t __asid_size;  /* number of ASID bits */
+
 extern char* __ld_begin_text;
 extern char* __ld_end_text;
 extern char* __ld_begin_reloc;
@@ -57,6 +59,10 @@ void init_device(void* fdt) {
 
     LEVEL_SIZES[REGION_CACHE_LINE] = __cache_line_size;
     LEVEL_SHIFTS[REGION_CACHE_LINE] = __cache_line_shift;
+
+    uint64_t mmfr0 = read_sysreg(id_aa64mmfr0_el1);
+    uint64_t asidbits = BIT_SLICE(mmfr0, 7, 4);
+    __asid_size = asidbits == 0 ? 8 : 16;
 
     uint64_t dczvid = read_sysreg(dczid_el0);
     __dc_zero_allow = (dczvid >> 4) == 0;

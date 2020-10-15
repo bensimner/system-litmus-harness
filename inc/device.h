@@ -23,6 +23,9 @@ extern uint64_t __dc_zero_block_width;  /* size of DC ZVA block */
 #define DCZVA_ALLOW __dc_zero_allow
 #define DCZVA_BLOCK_WIDTH __dc_zero_block_width
 
+extern uint64_t __asid_size;
+#define ASID_SIZE __asid_size
+
 /** PSCI Mandatory Functions
  * While these are defined in the psci node of the dtb
  * they are architecturally hard-coded to the following values in PSCIv0.2 */
