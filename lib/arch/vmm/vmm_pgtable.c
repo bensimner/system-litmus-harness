@@ -245,6 +245,11 @@ void vmm_switch_asid(uint64_t asid) {
   isb();  /* is this needed? */
 }
 
+void vmm_switch_ttable_asid(uint64_t* new_table, uint64_t asid) {
+  write_sysreg(TTBR0(new_table, asid), ttbr0_el1);
+  isb();
+}
+
 void __vmm_free_pgtable(uint64_t* pgtable, int level) {
   for (int i = 0; i < 512; i++) {
     desc_t d = read_desc(*(pgtable + i), level);

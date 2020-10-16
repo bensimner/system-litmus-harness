@@ -62,6 +62,7 @@ void vmm_update_mapping(uint64_t* pgtable, uint64_t va, uint64_t pa, uint64_t pr
 void vmm_unmap_page(uint64_t* pgtable, uint64_t va);
 void vmm_switch_ttable(uint64_t* new_table);
 void vmm_switch_asid(uint64_t asid);
+void vmm_switch_ttable_asid(uint64_t* new_table, uint64_t asid);
 
 /* unsynchronized TLB flushes */
 void tlbi_va(uint64_t va);

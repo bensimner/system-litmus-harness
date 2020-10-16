@@ -68,15 +68,16 @@ extern void concretize_linear_all(test_ctx_t* ctx, const litmus_test_t* cfg, voi
  * assumes all the vars have their VAs assigned and the default
  * initial pagetable entries for all tests have been created
  */
-void set_init_pte(test_ctx_t* ctx, var_idx_t varidx, var_idx_t idx) {
+void set_init_pte(test_ctx_t* ctx, var_idx_t varidx, run_idx_t run) {
   if (! ENABLE_PGTABLE)
     return;
 
   var_info_t* vinfo = &ctx->heap_vars[varidx];
-  uint64_t* va = vinfo->values[idx];
-  vmm_ensure_level(ctx->ptable, 3, (uint64_t)va);
+  uint64_t* va = vinfo->values[run];
+  uint64_t* ptable = ptable_from_run(ctx, run);
+  vmm_ensure_level(ptable, 3, (uint64_t)va);
 
-  uint64_t* pte = vmm_pte(ctx->ptable, (uint64_t)va);
+  uint64_t* pte = vmm_pte(ptable, (uint64_t)va);
 
   /* now if it was unmapped we can reset the last-level entry
   * to be invalid
@@ -113,7 +114,7 @@ void set_init_pte(test_ctx_t* ctx, var_idx_t varidx, var_idx_t idx) {
   */
   if (vinfo->is_alias) {
     var_idx_t otheridx = vinfo->alias;
-    uint64_t otherva = (uint64_t )ctx->heap_vars[otheridx].values[idx];
+    uint64_t otherva = (uint64_t )ctx->heap_vars[otheridx].values[run];
     uint64_t otherpa = TESTDATA_MMAP_VIRT_TO_PHYS(otherva);
 
     /* do not copy attrs of otherpte */
@@ -136,7 +137,7 @@ void set_init_pte(test_ctx_t* ctx, var_idx_t varidx, var_idx_t idx) {
     vmm_flush_tlb_vaddr((uint64_t)va);
   }
 
-  attrs_t attrs = vmm_read_attrs(ctx->ptable, (uint64_t)va);
+  attrs_t attrs = vmm_read_attrs(ptable, (uint64_t)va);
   if (attrs.AP == PROT_AP_RW_RWX) {
     /* we need to clean caches now
     * since one of the mappings might require a NC mapping
@@ -160,11 +161,11 @@ void set_init_pte(test_ctx_t* ctx, var_idx_t varidx, var_idx_t idx) {
  * this will, for each run, for each VA, set the PTE entry for that VA
  * and then write the initial value (if applicable).
  */
-void set_init_var(test_ctx_t* ctx, var_idx_t varidx, var_idx_t idx) {
+void set_init_var(test_ctx_t* ctx, var_idx_t varidx, run_idx_t run) {
   var_info_t* vinfo = &ctx->heap_vars[varidx];
 
-  uint64_t* va = vinfo->values[idx];
-  set_init_pte(ctx, varidx, idx);
+  uint64_t* va = vinfo->values[run];
+  set_init_pte(ctx, varidx, run);
 
   if (ENABLE_PGTABLE) {
     /* convert the VA to the PA
