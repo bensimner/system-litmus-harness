@@ -5,8 +5,6 @@
 extern uint64_t __argc;
 extern char*    __argv[100];
 
-extern char* stackptr;
-
 void setup(char* fdtloc) {
   fdt = fdtloc;
 
@@ -121,17 +119,6 @@ void per_cpu_setup(int cpu) {
     /* re-map vector_base_addr to some non-executable mapping of the vector table
     */
     vmm_update_mapping(vmm_pgtable, vector_base_addr_rw+cpu*4096, vector_base_pa+cpu*4096, PROT_PGTABLE);
-
-    /* unmap other threads' stack space
-     * each thread has a 4k stack
-     * so 1 page and we make sure this thread cannot access it
-     */
-    for (int i = 0; i < NO_CPUS; i++) {
-      if (i == cpu)
-        continue;
-
-      vmm_unmap_page(vmm_pgtable, (uint64_t)&stackptr + 4096*i);
-    }
   }
 
   /* enable virtual/physical timers */

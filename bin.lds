@@ -3,28 +3,43 @@
  */
 SECTIONS
 {
-    /* place .text into whole 4k page chunks
+    /* on the rpi4 and in QEMU's mach-virt implementation
+     * RAM starts from physical address 0x40000000
+     *
+     * then the bootloader will load _start at address 0x40080000
+     *
+     * so if we wish to place a section @ 0x40ABCDEF
+     * then we have to place it at location 0x0ABCDEF - 0x80000
+     * in the linker script
      */
-    . = ALIGN(4k);
-    PROVIDE(__ld_begin_text = .);
-    .text : {
+    OFFSET = 0x80000;
+
+    /* place .text into a 2M region starting at 0x40080000
+     */
+    .text 0x00000000 : {
+        PROVIDE(__ld_begin_text = .);
         *(.init) *(.text) *(.text.*) *(.exc_table)
+        /* align up to 1G + 2M */
+        . = 0x200000 - OFFSET;
+        PROVIDE(__ld_end_text = .);
     }
-    . = ALIGN(4k);
-    PROVIDE(__ld_end_text = .);
 
     /* relocations must be exactly marked
      * so don't align
      */
-    .rela.dyn : {
+    .rela.dyn (0x200000 - OFFSET) : {
         PROVIDE(__ld_begin_reloc = .);
         *(.rela.dyn)
+        /* PROVIDE(__ld_end_reloc = .); */
     }
+    /* TODO: this seems to need to go after the .rela.dyn section
+     * but it should be fine to put it after the *(.rela.dyn) above
+     * but it doesn't work ?
+     */
     PROVIDE(__ld_end_reloc = .);
 
-    . = ALIGN(4k);
-    PROVIDE(__ld_start_ro = .);
-    .dynsym   : { *(.dynsym) }
+    PROVIDE(__ld_begin_data = (0x400000 - OFFSET));
+    .dynsym   (0x400000 - OFFSET) : { *(.dynsym) }
     .dynstr   : { *(.dynstr) }
     .hash     : { *(.hash) }
     .gnu.hash : { *(.gnu.hash) }
@@ -34,10 +49,9 @@ SECTIONS
     .rodata   : { *(.rodata*) }
     .data     : { *(.data) }
     .bss      : { *(.bss) }
-    . = ALIGN(4k);
-    PROVIDE(__ld_end_ro = .);
+    . = 0x00600000 - OFFSET;
+    PROVIDE(__ld_end_data = .);
 
-    . = ALIGN(64K);
     /* from default linker script: `aarch64-none-elf-ld --verbose`
      * DWARF debug sections.
      * Symbols in the DWARF debugging sections are relative to the beginning
@@ -69,15 +83,11 @@ SECTIONS
     /* end debug sections */
 
     /*
-     * stack depth is 16K for arm and PAGE_SIZE for arm64, see THREAD_SIZE
-     * sp must be 16 byte aligned for arm64, and 8 byte aligned for arm
-     * sp must always be strictly less than the true stacktop
+     * we ensure at least 1 4K page for each thread's stack
      */
-    .stack : {
+    .stack (0x00800000 - OFFSET) : {
         PROVIDE(__ld_begin_stack = .);
-        . += 64K;
-        . = ALIGN(64K);
-        PROVIDE(stackptr = . - 16);
+        . += 0x00200000;
         PROVIDE(__ld_end_stack = .);
     }
 

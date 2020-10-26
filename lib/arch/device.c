@@ -15,8 +15,8 @@ extern char* __ld_end_reloc;
 extern char* __ld_begin_stack;
 extern char* __ld_end_stack;
 extern char* __ld_end_sections;
-extern char* __ld_start_ro;
-extern char* __ld_end_ro;
+extern char* __ld_begin_data;
+extern char* __ld_end_data;
 
 void init_device(void* fdt) {
     NO_CPUS = 4;
@@ -35,15 +35,14 @@ void init_device(void* fdt) {
     BOT_OF_HEAP = (uint64_t)&__ld_end_sections;
     BOT_OF_TEXT = (uint64_t)&__ld_begin_text;
 
-    BOT_OF_RDONLY = (uint64_t)&__ld_start_ro;
-    TOP_OF_RDONLY = (uint64_t)&__ld_end_ro;
+    BOT_OF_DATA = (uint64_t)&__ld_begin_data;
+    TOP_OF_DATA = (uint64_t)&__ld_end_data;
 
     /* compute remaining friendly region names */
 
     /* we allocate 128M for the heap */
     TOTAL_HEAP = 128 * MiB;
     TOP_OF_HEAP = BOT_OF_HEAP + TOTAL_HEAP;
-    TOP_OF_DATA = BOT_OF_STACK;
 
     BOT_OF_TESTDATA = TOP_OF_HEAP;
     TOP_OF_TESTDATA = TOP_OF_MEM;

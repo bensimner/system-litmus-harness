@@ -81,15 +81,15 @@ cpu_entry:
 .globl init_cpu
 init_cpu:
 	/* each thread has page desginated for stack space
-	 * located at stackptr + 4096*cpuid */
+	 * located at __ld_begin_stack + 4096*cpuid */
 	mrs x9, mpidr_el1
 	and x9, x9, #0xff
 	msr tpidr_el0, x9
 
 	mov x10, #4096
 	mul x10, x9, x10
-	adrp x11, stackptr
-	add x11, x11, :lo12:stackptr
+	adrp x11, __ld_begin_stack
+	add x11, x11, :lo12:__ld_begin_stack
 	add x11, x10, x11
 
 	mov x12, #SCTLR_HI
