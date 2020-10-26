@@ -74,6 +74,8 @@ void init_test_ctx(test_ctx_t* ctx, const litmus_test_t* cfg, int no_runs) {
   ctx->system_state = sys_st;
   ctx->out_regs = out_regs;
   ctx->start_barriers = bars;
+  ctx->generic_cpu_barrier = generic_cpu_bar;
+  ctx->generic_vcpu_barrier = generic_vcpu_bar;
   ctx->shuffled_ixs = shuffled;
   ctx->shuffled_ixs_inverse = rev_lookup;
   ctx->affinity = affinity;
