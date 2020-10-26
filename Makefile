@@ -377,10 +377,10 @@ LITMUS_TARGETS += build
 
 test: ./qemu_unittests
 test:
-	./qemu_unittests
+	./qemu_unittests $(BIN_ARGS)
 
 run: ./qemu_litmus
-	./qemu_litmus
+	./qemu_litmus $(BIN_ARGS)
 LITMUS_TARGETS += run
 
 include mk/litmus.mk
