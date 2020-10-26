@@ -55,4 +55,13 @@
    #define DEBUG_DISABLE_WFE 0
 #endif
 
+/**
+ * if -DDEBUG_PTABLE_SET_RANGE=1 then
+ * pagetable range set functions will
+ * dump more information
+ */
+#ifndef DEBUG_PTABLE_SET_RANGE
+   #define DEBUG_PTABLE_SET_RANGE 0
+#endif
+
 #endif /* DEBUG_FLAGS_H */

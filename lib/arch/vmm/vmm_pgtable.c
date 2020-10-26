@@ -1,5 +1,10 @@
 #include "lib.h"
 
+#define DEBUG_PTABLE_RANGE_SET(fmt, ...) \
+  if (DEBUG_PTABLE_SET_RANGE) { \
+      debug(fmt, __VA_ARGS__); \
+  }
+
 uint64_t vmm_make_desc(uint64_t pa, uint64_t prot, int level) {
   desc_t final;
   final.type = Block;
@@ -34,6 +39,52 @@ void vmm_unmap_page(uint64_t* pgtable, uint64_t va) {
   set_block_or_page(pgtable, va, 0, 1, 0, 0);
 }
 
+void vmm_ptable_map(uint64_t* pgtable, uint64_t va_start, uint64_t pa_start, uint64_t size, uint64_t prot) {
+  uint64_t level;
+  switch (size) {
+    case PAGE_SIZE:
+      level = 3;
+      break;
+    case PMD_SIZE:
+      level = 2;
+      break;
+    case PUD_SIZE:
+      level = 1;
+      break;
+    default:
+      fail(
+        "! vmm_ptable_map can only map PAGE/PMD/PUD size chunk (0x%lx, 0x%lx, 0x%lx respectively)\n",
+        PAGE_SIZE,
+        PMD_SIZE,
+        PUD_SIZE
+      );
+  }
+  set_block_or_page(pgtable, va_start, pa_start, 0, prot, level);
+}
+
+void vmm_ptable_unmap(uint64_t* pgtable, uint64_t va_start, uint64_t size, uint64_t prot) {
+  uint64_t level;
+  switch (size) {
+    case PAGE_SIZE:
+      level = 3;
+      break;
+    case PMD_SIZE:
+      level = 2;
+      break;
+    case PUD_SIZE:
+      level = 1;
+      break;
+    default:
+      fail(
+        "! vmm_ptable_unmap can only unmap PAGE/PMD/PUD size chunk (0x%lx, 0x%lx, 0x%lx respectively)\n",
+        PAGE_SIZE,
+        PMD_SIZE,
+        PUD_SIZE
+      );
+  }
+  set_block_or_page(pgtable, va_start, 0, 1, 0, level);
+}
+
 void __ptable_set_range(uint64_t* root,
                       uint64_t pa_start,
                       uint64_t va_start, uint64_t va_end,
@@ -42,9 +93,9 @@ void __ptable_set_range(uint64_t* root,
   uint64_t level1 = 30, level2 = 21, level3 = 12;
 
   if (unmap) {
-    debug("unmap from %p -> %p\n", va_start, va_end);
+    DEBUG_PTABLE_RANGE_SET("unmap from %p -> %p\n", va_start, va_end);
   } else {
-    debug("map %p -> %p, prot=%p\n", va_start, va_end, prot);
+    DEBUG_PTABLE_RANGE_SET("map %p -> %p, prot=%p\n", va_start, va_end, prot);
   }
 
 
@@ -68,7 +119,7 @@ void __ptable_set_range(uint64_t* root,
         3);  // allocate 4k regions up to the first 2M region
 
 
-  debug("allocated lvl3 up to %p\n", va);
+  DEBUG_PTABLE_RANGE_SET("allocated lvl3 up to %p\n", va);
 
   for (; !IS_ALIGNED(va, level1) && va+(1UL<<level2) < va_end;
        va += (1UL << level2), pa += (1UL << level2))
@@ -76,14 +127,14 @@ void __ptable_set_range(uint64_t* root,
         root, va, pa, unmap, prot,
         2);  // allocate 2M regions up to the first 1G region
 
-  debug("allocated lvl2 up to %p\n", va);
+  DEBUG_PTABLE_RANGE_SET("allocated lvl2 up to %p\n", va);
 
   for (; va < ALIGN_TO(va_end, level1) && va+(1UL << level1) < va_end;
        va += (1UL << level1), pa += (1UL << level1))
     set_block_or_page(root, va, pa, unmap, prot,
                                 1);  // Alloc as many 1G regions as possible
 
-  debug("allocated lvl1 up to %p\n", va);
+  DEBUG_PTABLE_RANGE_SET("allocated lvl1 up to %p\n", va);
 
   for (; va < ALIGN_TO(va_end, level2) && va+(1UL << level2) < va_end;
        va += (1UL << level2), pa += (1UL << level2))
@@ -91,13 +142,13 @@ void __ptable_set_range(uint64_t* root,
         root, va, pa, unmap, prot,
         2);  // allocate as much of what's left as 2MB regions
 
-  debug("allocated lvl2 up to %p\n", va);
+  DEBUG_PTABLE_RANGE_SET("allocated lvl2 up to %p\n", va);
 
   for (; va < va_end; va += (1UL << level3), pa += (1UL << level3))
     set_block_or_page(root, va, pa, unmap, prot,
                                 3);  // allocate whatever remains as 4k pages.
 
-  debug("allocated lvl3 up to %p\n", va);
+  DEBUG_PTABLE_RANGE_SET("allocated lvl3 up to %p\n", va);
 }
 
 void ptable_map_range(uint64_t* root,
@@ -113,11 +164,33 @@ void ptable_unmap_range(uint64_t* root,
     __ptable_set_range(root, pa_start, va_start, va_end, 1, 0);
 }
 
+#define __CHECK(start, end, expected) \
+  do { \
+    if (end - start != expected) { \
+      fail( \
+        "! __CHECK: from %s=%p to %s=%p was not %s=0x%lx bytes !\n", \
+        #start, \
+        start, \
+        #end, \
+        end, \
+        #expected , \
+        expected \
+      ); \
+    } \
+    if (! IS_ALIGNED_TO(start, expected)) { \
+      fail( \
+        "! __CHECK: %s=%p was not aligned to %s=0x%lx bytes !\n", \
+        #start, \
+        start, \
+        #expected , \
+        expected \
+      ); \
+    } \
+  } while (0)
+
 static uint64_t* __vmm_alloc_table(uint8_t is_test) {
   uint64_t* root_ptable = alloc(4096);
   valloc_memset(root_ptable, 0, 4096);
-
-  uint64_t phys_offs = (1UL << 30); /* first 1 GiB region */
 
   /* QEMU Memory Mapped I/O
    * 0x00000000 -> 0x08000000  == Boot ROM
@@ -131,22 +204,36 @@ static uint64_t* __vmm_alloc_table(uint8_t is_test) {
    * 0x40000000 -> RAM_END
    *  where RAM_END is defined by the dtb
    */
-  ptable_map_range(root_ptable, 0, 0, phys_offs, PROT_MEMTYPE_DEVICE | PROT_RW_RWX);
+  vmm_ptable_map(root_ptable, 0x0, 0x0, 1*GiB, PROT_MEMTYPE_DEVICE | PROT_RW_RWX);
 
   /* fixed linker sections are identically mapped
    */
 
   /* .text segment (code) */
   /* AArch64 requires that code executable at EL1 is not writable at EL0 */
-  ptable_map_range(root_ptable, phys_offs, phys_offs, TOP_OF_TEXT, PROT_MEMTYPE_NORMAL | PROT_RX_RX);
+  __CHECK(1*GiB, TOP_OF_TEXT, 2*MiB);
+  vmm_ptable_map(root_ptable, 1*GiB, 1*GiB, 2*MiB, PROT_MEMTYPE_DEVICE | PROT_RW_RWX);
 
   /* bss and other data segments */
-  ptable_map_range(root_ptable, BOT_OF_RDONLY, BOT_OF_RDONLY, TOP_OF_RDONLY, PROT_MEMTYPE_NORMAL | PROT_RW_RWX);
+  __CHECK(BOT_OF_DATA, TOP_OF_DATA, 2*MiB);
+  vmm_ptable_map(root_ptable, BOT_OF_DATA, BOT_OF_DATA, 2*MiB, PROT_MEMTYPE_NORMAL | PROT_RW_RWX);
 
-  /* stack */
-  ptable_map_range(root_ptable, BOT_OF_STACK, BOT_OF_STACK, TOP_OF_STACK, PROT_MEMTYPE_NORMAL | PROT_RW_RWX);
+  /* stack
+   */
+  __CHECK(BOT_OF_STACK, TOP_OF_STACK, 2*MiB);
 
-  /* heap, for non-test data */
+  if (is_test) {
+    /* the table is shared between all cpus */
+    vmm_ptable_map(root_ptable, BOT_OF_STACK, BOT_OF_STACK, 2*MiB, PROT_MEMTYPE_NORMAL | PROT_RW_RWX);
+  } else {
+    int cpu = get_cpu();
+    vmm_ptable_map(root_ptable, BOT_OF_STACK+PAGE_SIZE*cpu, BOT_OF_STACK+PAGE_SIZE*cpu, PAGE_SIZE, PROT_MEMTYPE_NORMAL | PROT_RW_RWX);
+  }
+
+  /* heap
+   * here it goes from 0x401000000 -> END_OF_MEM
+   * so we do not know what that is by-default
+   */
   ptable_map_range(root_ptable, BOT_OF_HEAP, BOT_OF_HEAP, TOP_OF_HEAP, PROT_MEMTYPE_NORMAL | PROT_RW_RWX);
 
   /* testdata physical address space itself is mapped in the virtual space
@@ -156,7 +243,7 @@ static uint64_t* __vmm_alloc_table(uint8_t is_test) {
 
   /* the harness itself maps all of memory starting @ 64G
    */
-  ptable_map_range(root_ptable, phys_offs, (uint64_t)HARNESS_MMAP, (uint64_t)HARNESS_MMAP+TOTAL_MEM, PROT_MEMTYPE_NORMAL | PROT_RW_RWX);
+  ptable_map_range(root_ptable, 1*GiB, (uint64_t)HARNESS_MMAP, (uint64_t)HARNESS_MMAP+TOTAL_MEM, PROT_MEMTYPE_NORMAL | PROT_RW_RWX);
 
   if (! is_test)
     return root_ptable;
