@@ -39,14 +39,14 @@ void lock(volatile lock_t* lock);
 void unlock(volatile lock_t* lock);
 
 #define LOCK(lockptr) ({ \
-  if (DEBUG_LOCKS) { \
+  if (ENABLE_DEBUG_LOCKS) { \
     debug("LOCK(%s=%p)\n", STR_LITERAL(lockptr), lockptr); \
   } \
   lock(lockptr); \
 })
 
 #define UNLOCK(lockptr) ({ \
-  if (DEBUG_LOCKS) { \
+  if (ENABLE_DEBUG_LOCKS) { \
     debug("UNLOCK(%s=%p)\n", STR_LITERAL(lockptr), lockptr); \
   } \
   unlock(lockptr); \
@@ -64,7 +64,7 @@ typedef struct {
 void bwait(int cpu, bar_t* barrier, int sz);
 
 #define BWAIT(cpu, barrier, sz) ({ \
-  if (DEBUG_BWAITS) { \
+  if (ENABLE_DEBUG_BWAITS) { \
     debug("BWAIT(%s=%d, %s=%p, sz=%d)\n", STR_LITERAL(cpu), cpu, STR_LITERAL(barrier), barrier, sz); \
   } \
   bwait(cpu, barrier, sz); \

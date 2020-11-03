@@ -55,7 +55,7 @@ void test_free_test_ctx_and_page(void) {
   uint64_t* p = vmm_alloc_new_4k_pgtable();
   vmm_ensure_level(p, 3, 0x4008000UL);
   free_test_ctx(&ctx);
-  vmm_free_pgtable(p);
+  vmm_free_generic_pgtable(p);
 
   debug_valloc_status();
 

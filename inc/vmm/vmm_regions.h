@@ -4,6 +4,22 @@
 #include "litmus_regions.h"
 #include "device.h"
 
+/* at 16G starts the STACK va space */
+#define STACK_MMAP_BASE (16 * GiB)
+#define STACK_MMAP_SIZE (16 * KiB)
+
+/* at 17G starts the VECTOR TABLE va space
+ * which is an EL0 R/W mapping to the vtable
+ *
+ * VTABLE_MMAP_BASE + get_cpu()*PAGE_SIZE ==
+ *  R/W Mapping to TTBR for this thread
+ */
+#define VTABLE_MMAP_BASE (17 * GiB)
+#define VTABLE_MMAP_SIZE (16 * KiB)
+
+#define THR_VTABLE_VA(t) ((uint64_t*)(VTABLE_MMAP_BASE + PAGE_SIZE*t))
+#define THR_VTABLE_PA(t) ((uint64_t*)(vector_base_pa + PAGE_SIZE*t))
+
 /* size of TESTDATA VA space */
 #define TESTDATA_MMAP_SIZE (64 * GiB)
 #define TESTDATA_MMAP_SIZE_SHIFT (6 + GiB_SHIFT)

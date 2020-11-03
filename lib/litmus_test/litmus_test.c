@@ -111,39 +111,35 @@ static void allocate_affinities(test_ctx_t* ctx) {
  */
 static void allocate_data_for_batch(test_ctx_t* ctx, uint64_t vcpu, run_count_t batch_start_idx, run_count_t batch_end_idx) {
   debug("vCPU%d allocating test data for batch starting %ld\n", vcpu, batch_start_idx);
-  /* first we have to allocate new pagetables for the whole batch
-   * cleaning up any previous ones as we do
-   */
-  if (ENABLE_PGTABLE) {
-    for (run_count_t r = batch_start_idx; r < batch_end_idx; r++) {
-      uint64_t asid = asid_from_run_count(r);
-      /* cleanup the previous if it exists */
-      if (ctx->ptables[asid] != NULL) {
-        vmm_free_pgtable(ctx->ptables[asid]);
-      }
 
-      debug("vCPU%d alloc pgtable for ASID=%ld\n", vcpu, asid);
-      ctx->ptables[asid] = vmm_alloc_new_4k_pgtable();
+  if (vcpu == 0) {
+    /* first we have to allocate new pagetables for the whole batch
+    * cleaning up any previous ones as we do
+    */
+    if (ENABLE_PGTABLE) {
+      for (run_count_t r = batch_start_idx; r < batch_end_idx; r++) {
+        uint64_t asid = asid_from_run_count(r);
+        /* cleanup the previous if it exists */
+        if (ctx->ptables[asid] != NULL) {
+          vmm_free_test_pgtable(ctx->ptables[asid]);
+        }
 
-      /* need to add read/write mappings to the exception vector table
-      * so we can write from EL0
-      */
-      for (int i = 0; i < 4; i++) {
-        vmm_update_mapping(ctx->ptables[asid], vector_base_addr_rw+i*4096, vector_base_pa+i*4096, PROT_PGTABLE);
+        debug("vCPU%d alloc pgtable for ASID=%ld\n", vcpu, asid);
+        ctx->ptables[asid] = vmm_alloc_new_test_pgtable();
       }
     }
-  }
 
-  if (vcpu == 0 && LITMUS_RUNNER_TYPE != RUNNER_ARRAY) {
-    for (run_count_t r = batch_start_idx; r < batch_end_idx; r++) {
-      run_idx_t i = count_to_run_index(ctx, r);
+    if (LITMUS_RUNNER_TYPE != RUNNER_ARRAY) {
+      for (run_count_t r = batch_start_idx; r < batch_end_idx; r++) {
+        run_idx_t i = count_to_run_index(ctx, r);
 
-      if (LITMUS_RUNNER_TYPE == RUNNER_EPHEMERAL) {
-        concretize_one(LITMUS_CONCRETIZATION_TYPE, ctx, ctx->cfg, ctx->concretization_st, i);
-      }
+        if (LITMUS_RUNNER_TYPE == RUNNER_EPHEMERAL) {
+          concretize_one(LITMUS_CONCRETIZATION_TYPE, ctx, ctx->cfg, ctx->concretization_st, i);
+        }
 
-      if (LITMUS_RUNNER_TYPE == RUNNER_SEMI_ARRAY || LITMUS_RUNNER_TYPE == RUNNER_EPHEMERAL) {
-        write_init_state(ctx, ctx->cfg, i);
+        if (LITMUS_RUNNER_TYPE == RUNNER_SEMI_ARRAY || LITMUS_RUNNER_TYPE == RUNNER_EPHEMERAL) {
+          write_init_state(ctx, ctx->cfg, i);
+        }
       }
     }
   }
@@ -182,8 +178,8 @@ static void setup_run_data(test_ctx_t* ctx, uint64_t vcpu, run_count_t batch_sta
       }
     }
 
-    for (reg_idx_t r = 0; r < ctx->cfg->no_regs; r++) {
-      regs[r] = &ctx->out_regs[r][i];
+    for (reg_idx_t reg = 0; reg < ctx->cfg->no_regs; reg++) {
+      regs[reg] = &ctx->out_regs[reg][i];
     }
 
     /* turn arrays into actual pointer structures */
@@ -262,10 +258,12 @@ static void prepare_test_contexts(test_ctx_t* ctx, uint64_t vcpu, run_count_t ba
 /** switch to a particular run's ASID
  */
 static void switch_to_test_context(test_ctx_t* ctx, run_count_t r) {
+  debug("switching to test context for run %ld\n", r);
+
   /* set sysregs to what the test needs
-    * we do this before write_init_state to ensure
-    * changes to translation regime are picked up
-    */
+   * we do this before write_init_state to ensure
+   * changes to translation regime are picked up
+   */
   _init_sys_state(ctx);
 
   if (LITMUS_SYNC_TYPE == SYNC_ASID) {
@@ -305,7 +303,7 @@ static void run_thread(test_ctx_t* ctx, int cpu) {
 
   /* we reserve ASID 0 for the harness itself
    */
-  uint64_t batch_size = (nr_asids - 1) / 2;
+  uint64_t batch_size = 1; //(nr_asids - 1) / 2;
 
   /**
    * we run the tests in a batched way
@@ -347,7 +345,7 @@ static void run_thread(test_ctx_t* ctx, int cpu) {
      * we wait for them to have finished before continuing and trying to read
      * the PTEs
      */
-    BWAIT(vcpu, ctx->generic_cpu_barrier, ctx->cfg->no_threads);
+    BWAIT(vcpu, ctx->generic_vcpu_barrier, ctx->cfg->no_threads);
 
     litmus_test_run runs[batch_size];
     setup_run_data(ctx, vcpu, batch_start_idx, batch_end_idx, runs);
@@ -389,12 +387,11 @@ run_thread_after_execution:
 
 static void prefetch(test_ctx_t* ctx, run_idx_t i, run_count_t r) {
   for (var_idx_t v = 0; v < ctx->cfg->no_heap_vars; v++) {
-    /* TODO: read initial state */
-    lock(&__harness_lock);
+    LOCK(&__harness_lock);
     uint64_t* va = ctx_heap_var_va(ctx, v, i);
     uint64_t is_valid = vmm_pte_valid(ptable_from_run(ctx, i), va);
     uint64_t* safe_va = (uint64_t*)SAFE_TESTDATA_VA((uint64_t)va);
-    unlock(&__harness_lock);
+    UNLOCK(&__harness_lock);
     if (randn() % 2 && is_valid && *safe_va != ctx_initial_heap_value(ctx, v)) {
       fail(
           "! fatal: initial state for heap var \"%s\" on run %d was %ld not %ld\n",
@@ -422,7 +419,6 @@ static void resetsp(void) {
 }
 
 static void start_of_run(test_ctx_t* ctx, int cpu, int vcpu, run_idx_t i, run_count_t r) {
-  /* do not prefetch anymore .. not safe! */
   prefetch(ctx, i, r);
   if (! ctx->cfg->start_els || ctx->cfg->start_els[vcpu] == 0) {
     drop_to_el0();

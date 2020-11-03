@@ -28,13 +28,9 @@ void init_device(void* fdt) {
     TOTAL_MEM = mem.size;
 
     /* read regions from linker */
-    TOP_OF_STACK = (uint64_t)&__ld_end_stack;
-    BOT_OF_STACK = (uint64_t)&__ld_begin_stack;
-
     TOP_OF_TEXT = (uint64_t)&__ld_end_text;
     BOT_OF_HEAP = (uint64_t)&__ld_end_sections;
     BOT_OF_TEXT = (uint64_t)&__ld_begin_text;
-
     BOT_OF_DATA = (uint64_t)&__ld_begin_data;
     TOP_OF_DATA = (uint64_t)&__ld_end_data;
 
@@ -43,6 +39,9 @@ void init_device(void* fdt) {
     /* we allocate 128M for the heap */
     TOTAL_HEAP = 128 * MiB;
     TOP_OF_HEAP = BOT_OF_HEAP + TOTAL_HEAP;
+
+    BOT_OF_STACK_PA = (uint64_t)&__ld_begin_stack;
+    TOP_OF_STACK_PA = (uint64_t)&__ld_end_stack;
 
     BOT_OF_TESTDATA = TOP_OF_HEAP;
     TOP_OF_TESTDATA = TOP_OF_MEM;

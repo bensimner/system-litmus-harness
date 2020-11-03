@@ -84,27 +84,24 @@ uint64_t write_desc(desc_t desc) {
 
 
 void show_attrs(attrs_t attrs) {
-  printf("{ AF=%d, SH=%p, AP=%p, attr=%p }", attrs.AF, attrs.SH, attrs.AP, attrs.attr);
+  printf("{AF=%d,SH=%p,AP=%p,attr=%p}", attrs.AF, attrs.SH, attrs.AP, attrs.attr);
 }
 
 void show_desc(desc_t desc) {
-  printf("<desc_t: { \n");
   switch (desc.type) {
     case Invalid:
-      printf(" type=Invalid\n");
-      break;
+      printf("<Invalid>");
+      return;
 
     case Block:
-      printf(" type=Block\n");
-      printf(" oa=%p\n", desc.oa);
+      printf("<Block oa=%p", desc.oa);
       break;
 
     case Table:
-      printf(" type=Table\n");
-      printf(" table_addr=%p\n", desc.table_addr);
+      printf("<Table table_addr=%p", desc.table_addr);
+      break;
   }
 
-  printf("  level=%d\n", desc.level);
-  printf("  attrs="); show_attrs(desc.attrs); printf("\n");
-  printf("}>\n");
+  printf(",level=%d", desc.level);
+  printf(",attrs="); show_attrs(desc.attrs); printf(">");
 }

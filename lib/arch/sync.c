@@ -134,7 +134,7 @@ void bwait(int vcpu, bar_t* bar, int sz) {
   }
 
   /* slow acquire */
-  lock(&bwait_lock);
+  LOCK(&bwait_lock);
 
   /* if waiting is non-zero then
    * then we're still waiting for the release of one of the previous
@@ -153,7 +153,7 @@ void bwait(int vcpu, bar_t* bar, int sz) {
     dmb();
     sev();
   }
-  unlock(&bwait_lock);
+  UNLOCK(&bwait_lock);
 
   /* wait for the last one to arrive and flip the current state */
   uint64_t iter = bar->iteration;

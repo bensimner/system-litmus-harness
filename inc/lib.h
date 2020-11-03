@@ -28,9 +28,6 @@
 
 const char* version_string(void);
 
-uint64_t vector_base_pa;
-uint64_t vector_base_addr_rw;
-
 void psci_cpu_on(uint64_t cpu);
 void psci_system_off(void);
 

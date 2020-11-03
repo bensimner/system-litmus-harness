@@ -26,7 +26,7 @@
 #include <stdint.h>
 
 /* barriers and wrappers */
-#if DEBUG_DISABLE_WFE
+#if ENABLE_DEBUG_DISABLE_WFE
 #define wfe() do { asm volatile ("nop" ::: "memory"); } while (0)
 #define sev() do { asm volatile ("nop" ::: "memory"); } while (0)
 #else

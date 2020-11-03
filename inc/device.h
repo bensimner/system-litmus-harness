@@ -2,6 +2,16 @@
 #define DEVICE_H
 #include <stdint.h>
 
+/* see vmm_pgtable.c for memory layout */
+
+/* the stack space vaddr starts at 16GiB
+ * and lasts for 2 MiB
+ *
+ * this space maps to the phsycial space
+ * that .stack lives in
+ */
+#define STACK_BASE_ADDR (16 * GiB)
+
 void init_device(void* fdt);
 
 extern uint64_t __cache_line_size;  /* cache line of minimum size */
@@ -57,16 +67,16 @@ uint64_t BOT_OF_HEAP;
 uint64_t TOP_OF_HEAP;
 
 /**
- * Top and Bottom of thread stacks
+ * Top and Bottom of thread stack PA space
  */
-uint64_t TOP_OF_STACK;
-uint64_t BOT_OF_STACK;
+uint64_t TOP_OF_STACK_PA;
+uint64_t BOT_OF_STACK_PA;
 
 /**
  * Sections from linker
  */
-uint64_t BOT_OF_RDONLY;
-uint64_t TOP_OF_RDONLY;
+uint64_t BOT_OF_DATA;
+uint64_t TOP_OF_DATA;
 uint64_t TOP_OF_TEXT;
 uint64_t BOT_OF_TEXT;
 uint64_t TOP_OF_DATA;
@@ -86,6 +96,15 @@ uint64_t* TESTDATA_MMAP;
  */
 uint64_t BOT_OF_TESTDATA;
 uint64_t TOP_OF_TESTDATA;
+
+/**
+ * physical adddress the vector tables are located at
+ *
+ * this is the start of a NO_CPUS*VTABLE_SIZE region
+ * where each VTABLE_SIZE (aka PAGE_SIZE) space is
+ * one thread's exception vector table
+ */
+uint64_t vector_base_pa;
 
 /**
  * from dtb

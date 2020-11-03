@@ -18,7 +18,7 @@ void vmm_ensure_level(uint64_t* root, int desired_level, uint64_t va) {
   /** since multiple threads might want to vmm_ensure_level
    * at the same time, we synchronize them
    */
-  lock(&_vmm_lock);
+  LOCK(&_vmm_lock);
 
   for (int level = 0; level <= desired_level - 1; level++) {
     uint64_t* p = root + OFFS(va, level);
@@ -31,7 +31,7 @@ void vmm_ensure_level(uint64_t* root, int desired_level, uint64_t va) {
     }
 
     uint64_t* pg = alloc(4096);
-    debug("ensure %p level%d alloc new @ %p\n", va, level, pg);
+    debug("ensure %p to level%d alloc new level%d @ %p\n", va, desired_level, level, pg);
     valloc_memset(pg, 0, 4096);
     for (int i = 0; i < 512; i++) {
       switch (desc.type) {
@@ -63,7 +63,7 @@ void vmm_ensure_level(uint64_t* root, int desired_level, uint64_t va) {
     root = pg;
   }
 
-  unlock(&_vmm_lock);
+  UNLOCK(&_vmm_lock);
 }
 
 desc_t read_descptr(uint64_t* desc, int level) {
@@ -111,10 +111,14 @@ int vmm_level(uint64_t* root, uint64_t va) {
   return desc.level;
 }
 
-uint64_t* vmm_pte_at_level(uint64_t* root, uint64_t va, int level) {
-  vmm_ensure_level(root, 3, va);
-  desc_t desc = vmm_translation_walk_to_level(root, va, level);
+uint64_t* vmm_desc_at_level(uint64_t* root, uint64_t va, int ensure_level, int desc_level) {
+  vmm_ensure_level(root, ensure_level, va);
+  desc_t desc = vmm_translation_walk_to_level(root, va, desc_level);
   return desc.src;
+}
+
+uint64_t* vmm_pte_at_level(uint64_t* root, uint64_t va, int level) {
+  return vmm_desc_at_level(root, va, 3, level);
 }
 
 uint64_t* vmm_pte(uint64_t* root, uint64_t va) {

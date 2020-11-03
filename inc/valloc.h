@@ -61,7 +61,7 @@ void init_valloc(void);
 
 #define ALLOC_MANY(ty, count) ({ \
   void* v = alloc_with_alignment((sizeof(ty))*count, sizeof(ty)); \
-  if (DEBUG_ALLOCS) { \
+  if (ENABLE_DEBUG_ALLOCS) { \
     debug("alloc %ldx %s @ %p\n", count, #ty, v); \
   } \
   v; \

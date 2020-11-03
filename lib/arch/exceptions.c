@@ -62,7 +62,7 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
   uint64_t ec = esr >> 26;
   uint64_t iss = esr & BITMASK(26);
   uint64_t cpu = get_cpu();
-  lock(&_EXC_PRINT_LOCK);
+  LOCK(&_EXC_PRINT_LOCK);
 
   printf("Unhandled Exception (CPU%d): \n", cpu);
   printf("  [VBAR: 0x%lx]\n", read_sysreg(VBAR_EL1));
@@ -84,7 +84,7 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
   }
   printf("  [   SP] 0x%lx\n", regs->sp);
   printf("  \n");
-  unlock(&_EXC_PRINT_LOCK);
+  UNLOCK(&_EXC_PRINT_LOCK);
   abort();
 
   /* unreachable */

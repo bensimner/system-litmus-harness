@@ -70,14 +70,14 @@ void* alloc_with_alignment(uint64_t size, uint64_t alignment) {
     alignment = size;
   }
 
-  lock(&__valloc_lock);
+  LOCK(&__valloc_lock);
 
   valloc_free_chunk* free_chunk = valloc_freelist_find_best(size, alignment);
   if (free_chunk != NULL) {
     free_chunk = valloc_freelist_split_alignment(free_chunk, size, alignment);
     valloc_alloclist_alloc(&mem, (uint64_t)free_chunk, size);
     valloc_freelist_remove_chunk(free_chunk);
-    unlock(&__valloc_lock);
+    UNLOCK(&__valloc_lock);
     return free_chunk;
   }
 
@@ -96,7 +96,7 @@ void* alloc_with_alignment(uint64_t size, uint64_t alignment) {
 
   mem.top = new_top;
   valloc_alloclist_alloc(&mem, allocated_space_vaddr, size);
-  unlock(&__valloc_lock);
+  UNLOCK(&__valloc_lock);
   return (void*)allocated_space_vaddr;
 }
 
@@ -110,7 +110,7 @@ void* alloc(uint64_t size) {
 }
 
 void free(void* p) {
-  lock(&__valloc_lock);
+  LOCK(&__valloc_lock);
   valloc_alloc_chunk* chk = valloc_alloclist_find_alloc_chunk(&mem, (uint64_t)p);
   if (! chk) {
     fail("! err: free %p (double free?)\n", p);
@@ -120,7 +120,7 @@ void free(void* p) {
   valloc_alloclist_dealloc(&mem, (uint64_t)p);
   valloc_freelist_allocate_free_chunk((uint64_t)p, size);
   valloc_freelist_compact_chunk(mem.freelist);
-  unlock(&__valloc_lock);
+  UNLOCK(&__valloc_lock);
 }
 
 void free_all(void) {
