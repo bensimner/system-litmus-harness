@@ -14,20 +14,25 @@ SECTIONS
      */
     OFFSET = 0x80000;
 
-    /* place .text into a 2M region starting at 0x40080000
+    /* place all the shared data in the next 1G region
+     * this is data that will be mapped and
+     * note that 0x4000000 is the bootloader itself which does not actually need to be mapped
+     * (since it is used before we install the pgtable) so we can consider 0x40000000 -> ... as one big
+     * code segment
      */
     .text 0x00000000 : {
         PROVIDE(__ld_begin_text = .);
         *(.init) *(.text) *(.text.*) *(.exc_table)
-        /* align up to 1G + 2M */
-        . = 0x200000 - OFFSET;
+
+        . = ALIGN(4k);
         PROVIDE(__ld_end_text = .);
     }
 
     /* relocations must be exactly marked
-     * so don't align
+     * so don't align any more than needed
      */
-    .rela.dyn (0x200000 - OFFSET) : {
+    . = ALIGN(4k);
+    .rela.dyn : {
         PROVIDE(__ld_begin_reloc = .);
         *(.rela.dyn)
         /* PROVIDE(__ld_end_reloc = .); */
@@ -38,8 +43,9 @@ SECTIONS
      */
     PROVIDE(__ld_end_reloc = .);
 
-    PROVIDE(__ld_begin_data = (0x400000 - OFFSET));
-    .dynsym   (0x400000 - OFFSET) : { *(.dynsym) }
+    . = ALIGN(4k);
+    PROVIDE(__ld_begin_data = .);
+    .dynsym   : { *(.dynsym) }
     .dynstr   : { *(.dynstr) }
     .hash     : { *(.hash) }
     .gnu.hash : { *(.gnu.hash) }
@@ -49,8 +55,30 @@ SECTIONS
     .rodata   : { *(.rodata*) }
     .data     : { *(.data) }
     .bss      : { *(.bss) }
-    . = 0x00600000 - OFFSET;
+    . = ALIGN(4k);
     PROVIDE(__ld_end_data = .);
+
+    /*
+     * we ensure at least 1 4K page for each thread's stack
+     *
+     * this space is loaded here but its virtual addr will be placed at
+     * at 2M at 16G
+     */
+    . = ALIGN(4k);
+    .stack : {
+        PROVIDE(__ld_begin_stack = .);
+        . += 16k;
+        PROVIDE(__ld_end_stack = .);
+    }
+
+    /DISCARD/ : {
+        *(.note*)
+        *(.interp)
+        *(.comment)
+        *(.dynamic)
+    }
+
+    PROVIDE(__ld_end_sections = .);
 
     /* from default linker script: `aarch64-none-elf-ld --verbose`
      * DWARF debug sections.
@@ -81,24 +109,6 @@ SECTIONS
     .debug_macro    0 : { *(.debug_macro) }
     .debug_addr     0 : { *(.debug_addr) }
     /* end debug sections */
-
-    /*
-     * we ensure at least 1 4K page for each thread's stack
-     */
-    .stack (0x00800000 - OFFSET) : {
-        PROVIDE(__ld_begin_stack = .);
-        . += 0x00200000;
-        PROVIDE(__ld_end_stack = .);
-    }
-
-    /DISCARD/ : {
-        *(.note*)
-        *(.interp)
-        *(.comment)
-        *(.dynamic)
-    }
-
-    PROVIDE(__ld_end_sections = .);
 }
 
 ENTRY(_start)
