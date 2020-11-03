@@ -285,7 +285,7 @@ $(foreach t,$(BINTARGETS),\
 bin/$(call exe_prefix,$(1))qemu_$(t).exe: OUT_NAME=$$$$tmp
 bin/$(call exe_prefix,$(1))qemu_$(t).exe: bin/$(t).bin
 	$$(call run_cmd,BUILD_EXE,$$@, \
-		$$(call make_exe,$$(RUN_CMD_LOCAL) $${QEMU_ARGS}) \
+		$$(call make_exe,$$(RUN_CMD_LOCAL) $$$${QEMU_ARGS}) \
 	)
 )
 
@@ -293,7 +293,7 @@ $(foreach t,$(BINTARGETS),\
 bin/$(call exe_prefix,$(1))kvm_$(t).exe: OUT_NAME=$$$$tmp
 bin/$(call exe_prefix,$(1))kvm_$(t).exe: bin/$(t).bin
 	$$(call run_cmd,BUILD_EXE,$$@,\
-		$$(call make_exe,$$(RUN_CMD_HOST) $${QEMU_ARGS}) \
+		$$(call make_exe,$$(RUN_CMD_HOST) $$$${QEMU_ARGS}) \
 	)
 )
 
