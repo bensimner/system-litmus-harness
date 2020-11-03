@@ -52,9 +52,9 @@ typedef struct {
 void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs);
 typedef void* exception_vector_fn(uint64_t esr, regvals_t* regs);
 
-exception_vector_fn* table[4][4][64];
-exception_vector_fn* table_svc[4][64];  /* 64 SVC handlers */
-exception_vector_fn* table_pgfault[4][128];
+exception_vector_fn* vtable[4][4][64];
+exception_vector_fn* vtable_svc[4][64];  /* 64 SVC handlers */
+exception_vector_fn* vtable_pgfault[4][128];
 
 void set_handler(uint64_t vec, uint64_t ec,  exception_vector_fn* fn);
 void reset_handler(uint64_t vec, uint64_t ec);

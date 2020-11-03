@@ -93,12 +93,12 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
 
 void set_handler(uint64_t vec, uint64_t ec, exception_vector_fn* fn) {
   int cpu = get_cpu();
-  table[cpu][vec][ec] = fn;
+  vtable[cpu][vec][ec] = fn;
 }
 
 void reset_handler(uint64_t vec, uint64_t ec) {
   int cpu = get_cpu();
-  table[cpu][vec][ec] = NULL;
+  vtable[cpu][vec][ec] = NULL;
 }
 
 void drop_to_el0(void) {
@@ -174,7 +174,7 @@ static void* default_svc_read_currentel(uint64_t vec, uint64_t esr,
 static void* default_svc_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
   uint64_t imm = esr & 0xffffff;
   int cpu = get_cpu();
-  if (table_svc[cpu][imm] == NULL)
+  if (vtable_svc[cpu][imm] == NULL)
     if (imm == 10)
       return default_svc_drop_el0(vec, esr, regs);
     else if (imm == 11)
@@ -184,7 +184,7 @@ static void* default_svc_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
     else
       return default_handler(vec, esr, regs);
   else
-    return (void*)table_svc[cpu][imm](esr, regs);
+    return (void*)vtable_svc[cpu][imm](esr, regs);
 }
 
 static void* default_pgfault_handler(uint64_t vec, uint64_t esr,
@@ -192,16 +192,16 @@ static void* default_pgfault_handler(uint64_t vec, uint64_t esr,
   uint64_t far = read_sysreg(far_el1);
   int cpu = get_cpu();
   uint64_t imm = far % 127;
-  if (table_pgfault[cpu][imm] == NULL)
+  if (vtable_pgfault[cpu][imm] == NULL)
     return default_handler(vec, esr, regs);
   else
-    return (void*)table_pgfault[cpu][imm](esr, regs);
+    return (void*)vtable_pgfault[cpu][imm](esr, regs);
 }
 
 void* handle_exception(uint64_t vec, uint64_t esr, regvals_t* regs) {
   uint64_t ec = esr >> 26;
   int cpu = get_cpu();
-  exception_vector_fn* fn = table[cpu][vec][ec];
+  exception_vector_fn* fn = vtable[cpu][vec][ec];
   if (fn) {
     return fn(esr, regs);
   } else if (ec == 0x15) {
@@ -215,29 +215,29 @@ void* handle_exception(uint64_t vec, uint64_t esr, regvals_t* regs) {
 
 void set_svc_handler(uint64_t svc_no, exception_vector_fn* fn) {
   int cpu = get_cpu();
-  table_svc[cpu][svc_no] = fn;
+  vtable_svc[cpu][svc_no] = fn;
 }
 
 void reset_svc_handler(uint64_t svc_no) {
   int cpu = get_cpu();
-  table_svc[cpu][svc_no] = NULL;
+  vtable_svc[cpu][svc_no] = NULL;
 }
 
 void set_pgfault_handler(uint64_t va, exception_vector_fn* fn) {
   int cpu = get_cpu();
   int idx = va % 127;
-  if (table_pgfault[cpu][idx] != NULL) {
+  if (vtable_pgfault[cpu][idx] != NULL) {
     puts("! err: cannot set pagefault handler for same page twice.\n");
     abort();
   }
 
-  table_pgfault[cpu][idx] = fn;
+  vtable_pgfault[cpu][idx] = fn;
   dsb();
 }
 
 void reset_pgfault_handler(uint64_t va) {
   int cpu = get_cpu();
-  table_pgfault[cpu][va % 127] = NULL;
+  vtable_pgfault[cpu][va % 127] = NULL;
 }
 
 /** flush the icache for this threads' vector table entries
@@ -247,8 +247,8 @@ void reset_pgfault_handler(uint64_t va) {
  * but rather have to invalidate the actual VA/PA that is used during execution
  */
 static void flush_icache_vector_entries(void) {
-  uint64_t vbar_start = vector_base_addr_rw + (4096*get_cpu());
-  uint64_t vbar_pa_start = vector_base_pa + (4096*get_cpu());
+  uint64_t vbar_start = (uint64_t)THR_VTABLE_VA(get_cpu());
+  uint64_t vbar_pa_start = (uint64_t)THR_VTABLE_PA(get_cpu());
 
   uint64_t iline = 1 << BIT_SLICE(read_sysreg(ctr_el0), 3, 0);
   uint64_t dline = 1 << BIT_SLICE(read_sysreg(ctr_el0), 19, 16);
@@ -279,7 +279,7 @@ static void flush_icache_vector_entries(void) {
 
 uint32_t* hotswap_exception(uint64_t vector_slot, uint32_t data[32]) {
   uint32_t* p = alloc(sizeof(uint32_t) * 32);
-  uint32_t* vbar = (uint32_t*)(vector_base_addr_rw + (4096*get_cpu()) + vector_slot);
+  uint32_t* vbar = (uint32_t*)(THR_VTABLE_VA(get_cpu()) + vector_slot);
   debug("hotswap exception for vbar=%p slot 0x%lx : %p\n", vbar, vector_slot, &data[0]);
   for (int i = 0; i < 32; i++) {
     p[i] = *(vbar + i);
@@ -292,7 +292,7 @@ uint32_t* hotswap_exception(uint64_t vector_slot, uint32_t data[32]) {
 }
 
 void restore_hotswapped_exception(uint64_t vector_slot, uint32_t* ptr) {
-  uint32_t* vbar = (uint32_t*)(vector_base_addr_rw + (4096*get_cpu() + vector_slot));
+  uint32_t* vbar = (uint32_t*)(THR_VTABLE_VA(get_cpu()) + vector_slot);
 
   for (int i = 0; i < 32; i++) {
     *(vbar + i) = ptr[i];
