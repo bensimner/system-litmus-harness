@@ -170,6 +170,7 @@ CFLAGS = -O0 -nostdlib \
 		$(foreach DIR,$(OTHER_INCLUDES),-I $(DIR)) \
 		-ffreestanding -fomit-frame-pointer -fno-pie -fno-pic \
 		-Wall $(addprefix -Wno-,$(CCNOWARN)) $(addprefix -Werror=,$(CCERRORS)) \
+		-Wshadow \
 		-D__VERSION_STR__="\"$(_VERSION)\"" \
 		-DCOMMITHASH="\"$(_HEAD_COMMIT_HASH)\"" \
 		$(DEBUG_CFLAGS)
