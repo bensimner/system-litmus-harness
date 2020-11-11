@@ -89,18 +89,14 @@ init_cpu:
 
 	mov x10, #4096
 	mul x10, x9, x10
-	adrp x11, __ld_begin_stack
-	add x11, x11, :lo12:__ld_begin_stack
-	add x11, x10, x11
-    mov x10, #4096
-    sub x10, x10, #8 /* align */
-    add x11, x10, x11
+	adrp x11, __ld_end_stack
+	add x11, x11, :lo12:__ld_end_stack
+    sub x11, x11, x10
 
 	mov x12, #SCTLR_HI
 	lsl x12, x12, #12
 	add x12, x12, #SCTLR_LO
 	msr sctlr_el1, x12
-
 
 	/* setup stack */
 	mov	x4, #0  /* use SP_EL0 everywhere */
