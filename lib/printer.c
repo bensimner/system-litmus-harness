@@ -249,10 +249,28 @@ void verbose(const char* fmt, ...) {
   }
 }
 
-void printf_with_fileloc(int mode, const char* filename, const int line, const char* func, const char* fmt, ...) {
+void __print_frame_unwind(char* out, int skip) {
+  stack_t* stack = walk_stack();
+
+  for (int i = skip; i < stack->no_frames; i++) {
+    stack_frame_t* frame = &stack->frames[i];
+    out = sprintf(out, "%p", frame->ret);
+    if (i < stack->no_frames - 1) {
+      out = sprintf(out, ":");
+    }
+  }
+}
+
+/** print buffer used for the stack output
+ * protected by __PR_VERB_LOCK
+ */
+static char __debug_frame_buf[1024];
+
+void printf_with_fileloc(const char* level, int mode, const char* filename, const int line, const char* func, const char* fmt, ...) {
   int cpu = get_cpu();
   lock(&__PR_VERB_LOCK);
-  sprintf(__verbose_print_buf, "[%s:%d %s (CPU%d)] %s", filename, line, func, cpu, fmt);
+  __print_frame_unwind(__debug_frame_buf, 1);
+  sprintf(__verbose_print_buf, "CPU%d:%s:[%s:%s:%d (%s)] %s", cpu, level, __debug_frame_buf, filename, line, func, fmt);
 
   if (strlen(__verbose_print_buf) > 1024) {
     /* can't use fail() here

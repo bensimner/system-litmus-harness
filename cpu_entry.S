@@ -56,6 +56,7 @@ _start:
 1:
 	/* setup CPU0 */
 	bl init_cpu
+    mov x29,#0
 	bl setup
 
 	/* call main */
@@ -63,9 +64,11 @@ _start:
 	ldr	x0, [x0, :lo12:__argc]
 	adrp	x1, __argv
 	add	x1, x1, :lo12:__argv
+    mov x29,#0
 	bl main
 
 	/* exit */
+    mov x29,#0
 	bl abort
 	b halt
 

@@ -123,7 +123,8 @@ DEBUG_CFLAGS =
 DEBUG_OBJDUMPFLAGS =
 
 ifeq ($(DEBUG),1)
-DEBUG_CFLAGS += -g -gdwarf-4
+DEBUG_CFLAGS += -g -gdwarf-4 \
+	-fno-omit-frame-pointer
 DEBUG_CFLAGS += $(patsubst %,-DDEBUG_%=1,$(DEBUG_FLAGS))
 DEBUG_OBJDUMPFLAGS += -g -l -r
 else ifeq ($(DEBUG),0)
