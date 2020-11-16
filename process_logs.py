@@ -148,12 +148,13 @@ def build_msg(m, labels):
 def forever(root):
     labels = read_func_addrs(root)
 
-    data = sys.stdin.read()
-    lines = iter(data.splitlines())
+    data = sys.stdin.buffer.read()
+    data = data.decode("utf-8", errors="replace")
+    lines = iter(data.splitlines(keepends=True))
 
     while True:
         try:
-            line = next(lines) + "\n"
+            line = next(lines)
         except StopIteration:
             break
 
