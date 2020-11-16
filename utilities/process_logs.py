@@ -66,7 +66,13 @@ class FuncTree:
         self._tree.insert(_Node(r, label))
 
     def find(self, addr):
-        return self._tree.search(addr)
+        try:
+            return self._tree.search(addr)
+        except ValueError as e:
+            print(e)
+            print()
+            self.print_tree()
+            raise
 
     def __iter__(self):
         d = collections.deque([self._tree])
@@ -93,7 +99,8 @@ class FuncTree:
             ft.insert(range(addr1, addr2), label1)
 
         final = items[-1]
-        ft.insert(range(final[0], 0x8000000), final[1])
+        # dont overshoot, so we spot errors
+        ft.insert(range(final[0], final[0]+0x1_000), final[1])
         return ft
 
 def read_func_addrs(root: pathlib.Path):
@@ -179,7 +186,12 @@ def forever(root):
             )
 
             if m:
-                msg = build_msg(m, labels)
+                try:
+                    msg = build_msg(m, labels)
+                except ValueError as e:
+                    print(e)
+                    print(repr(line))
+                    raise
                 sys.stderr.write(msg)
             else:
                 sys.stdout.write(line)
