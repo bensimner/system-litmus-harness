@@ -2,8 +2,6 @@
 
 #include "lib.h"
 
-static lock_t _EXC_PRINT_LOCK;
-
 static const char* vec_names[16] = {
   "VEC_EL1T_SYNC",
   "VEC_EL1T_IRQ",
@@ -58,6 +56,16 @@ static const char* dabt_iss_dfsc[0x40] = {
   [0b110000] = "DABT_DFSC_TLB",
 };
 
+
+/* a buffer to write exception messages into
+ * protected by _EXC_PRINT_LOCK
+ *
+ * note that nested exceptions during a default exception handler
+ * may deadlock and cause weird issues here
+ */
+static char __exc_buffer[4096];
+static lock_t _EXC_PRINT_LOCK;
+
 void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
   uint64_t ec = esr >> 26;
   uint64_t iss = esr & BITMASK(26);
@@ -82,12 +90,55 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
   for (int i = 0; i < 30; i++) {
     printf("  [  x%d] 0x%lx\n", i, regs->gpr[i]);
   }
-  printf("  [   SP] 0x%lx\n", regs->sp);
+
+  /* the stack that was previously in-use may have been different
+   * to the one being used here
+   *
+   * typically it would be SP_EL0 but if we took an exception during a handler
+   * then it might've been SP_EL1
+   */
+  uint64_t spsr = read_sysreg(spsr_el1);
+  uint64_t splevel = spsr & 0b1;
+  printf("  [STACK]\n");
+  if (splevel == 0) {
+    /* came from code using SP_EL0
+     * and we are not using SP_EL0
+     * so we can access it:
+     */
+    printf("  [ SP_EL0] 0x%lx\n", read_sysreg(sp_el0));
+  } else {
+    /* otherwise we are using SP_EL1
+     * but we cannot access via sp_el1 register
+     * we must use the sp register...
+     * but as it was when we took the exception
+     */
+    printf("  [ SP_EL1] 0x%lx\n", regs->sp);
+  }
+
+  /* we check x29, which, if we were executing C code
+   * contains a pointer to a frame
+   */
+  uint64_t fp = regs->gpr[29];
+  stack_t* stack = walk_stack_from((uint64_t*)fp);
+
+  if (stack == NULL) {
+    printf("  [ STRACE] N/A\n");
+  } else {
+    char* out = __exc_buffer;
+    out = sprintf(out, "  [ STRACE] ", stack->no_frames);
+    for (int i = 0; i < stack->no_frames; i++) {
+      out = sprintf(out, ":%p", stack->frames[i].ret);
+    }
+    printf("%s\n", __exc_buffer);
+    free(stack);
+  }
+
+
   printf("  \n");
-  UNLOCK(&_EXC_PRINT_LOCK);
   abort();
 
   /* unreachable */
+  UNLOCK(&_EXC_PRINT_LOCK);
   return NULL;
 }
 
