@@ -66,6 +66,19 @@ static const char* dabt_iss_dfsc[0x40] = {
 static char __exc_buffer[4096];
 static lock_t _EXC_PRINT_LOCK;
 
+static void _print_stack_trace(uint64_t fp) {
+  stack_t* stack = walk_stack_from((uint64_t*)fp);
+
+  char* out = __exc_buffer;
+  out = sprintf(out, "  [ STRACE] ", stack->no_frames);
+  for (int i = 0; i < stack->no_frames; i++) {
+    out = sprintf(out, ":%p", stack->frames[i].ret);
+  }
+  printf("%s\n", __exc_buffer);
+
+  free(stack);
+}
+
 void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
   uint64_t ec = esr >> 26;
   uint64_t iss = esr & BITMASK(26);
@@ -116,23 +129,16 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
   }
 
   /* we check x29, which, if we were executing C code
-   * contains a pointer to a frame
+   * is the frame pointer which lets us walk the stack
+   * which resulted in the exception (hopefully!)
+   *
+   * this doesn't work if the exception happened outside of C code
+   * in which case the frame pointer will eventually wander outside the desginated
+   * stack space and stack_walk* functions will exit early, and the STRACE field
+   * will not contain anything meaningful but shouldn't cause any other problems
    */
   uint64_t fp = regs->gpr[29];
-  stack_t* stack = walk_stack_from((uint64_t*)fp);
-
-  if (stack == NULL) {
-    printf("  [ STRACE] N/A\n");
-  } else {
-    char* out = __exc_buffer;
-    out = sprintf(out, "  [ STRACE] ", stack->no_frames);
-    for (int i = 0; i < stack->no_frames; i++) {
-      out = sprintf(out, ":%p", stack->frames[i].ret);
-    }
-    printf("%s\n", __exc_buffer);
-    free(stack);
-  }
-
+  _print_stack_trace(fp);
 
   printf("  \n");
   abort();
