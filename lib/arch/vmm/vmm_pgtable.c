@@ -224,7 +224,7 @@ static void update_table_from_vmregion_map(uint64_t* table, VMRegions regs) {
   VMRegion* map = regs.regions;
 
   VMRegion r_prev = {0};
-  for (int i = VM_MMAP_IO; i <= VM_MMAP_HARNESS; i++) {
+  for (int i = VM_MMAP_IO; i <= VM_MMAP_VTABLE; i++) {
     VMRegion r = map[i];
 
     if (! r.valid)
@@ -239,6 +239,8 @@ static void update_table_from_vmregion_map(uint64_t* table, VMRegions regs) {
       fail("! %o's region comes after a later region %o\n", r, r_prev);
 
     vmm_ptable_map(table, r);
+
+    printf("updated_Table_from_vmregion %d => %p\n", i, r.va_start);
   }
 }
 
@@ -362,41 +364,39 @@ static uint64_t* __vmm_alloc_table(uint8_t is_test) {
 
   if (is_test) {
     /* if in a test, then allocate the whole 1G entry to the stack */
-    stack_bot = STACK_MMAP_BASE;
-    stack_top = STACK_MMAP_BASE + 1*GiB;
+    VMRegions test = {{
+      [VM_MMAP_STACK_EL0] = {VMREGION_VALID, STACK_MMAP_BASE, STACK_MMAP_BASE + 1*GiB, PROT_MEMTYPE_NORMAL, PROT_RW_RWX, BOT_OF_STACK_PA},
+      [VM_MMAP_VTABLE]    = {VMREGION_VALID, VTABLE_MMAP_BASE, VTABLE_MMAP_BASE + 1*GiB, PROT_MEMTYPE_NORMAL, PROT_RW_RWX, vector_base_pa},
+    }};
 
-    vtable_bot = VTABLE_MMAP_BASE;
-    vtable_top = VTABLE_MMAP_BASE + 1*GiB;
+    update_table_from_vmregion_map(root_ptable, test);
+    TRACE_PTABLE("updated test @ %p\n", root_ptable);
   } else {
-    stack_bot = STACK_MMAP_BASE + cpu*PAGE_SIZE;
-    stack_top = stack_bot + PAGE_SIZE;
-
-    vtable_bot = VTABLE_MMAP_BASE + cpu*PAGE_SIZE;;
+    uint64_t vtable_bot, vtable_top;
+    vtable_bot = VTABLE_MMAP_BASE + cpu*PAGE_SIZE;
     vtable_top = vtable_bot + PAGE_SIZE;
+    /* ideally EL0 would be R_RW permissions but AArch64 doesn't allow W at EL0 without W at EL1 */
+    VMRegions per_thread_data = {{
+      [VM_MMAP_STACK_EL0] = {VMREGION_VALID, STACK_MMAP_THREAD_BOT_EL0(cpu), STACK_MMAP_THREAD_TOP_EL0(cpu), PROT_MEMTYPE_NORMAL, PROT_RW_RWX, STACK_PYS_THREAD_BOT_EL0(cpu)},
+      [VM_MMAP_STACK_EL1] = {VMREGION_VALID, STACK_MMAP_THREAD_BOT_EL1(cpu), STACK_MMAP_THREAD_TOP_EL1(cpu), PROT_MEMTYPE_NORMAL, PROT_RWX_R , STACK_PYS_THREAD_BOT_EL1(cpu)},
+      [VM_MMAP_VTABLE]    = {VMREGION_VALID, vtable_bot                    , vtable_top                    , PROT_RW_RWX                     , vector_base_pa},
+    }};
+
+    update_table_from_vmregion_map(root_ptable, per_thread_data);
+    TRACE_PTABLE("updated per_thread_data @ %p\n", root_ptable);
   }
 
-  VMRegions map = {{
+  VMRegions harness = {{
     /* the harness itself maps all of memory starting @ 64G
      */
     [VM_MMAP_HARNESS] = {VMREGION_VALID, HARNESS_MMAP_BASE, HARNESS_MMAP_BASE+TOTAL_MEM, PROT_MEMTYPE_NORMAL, PROT_RW_RWX, GiB},
-
-    /* each thread has its stack mapped
-     * at a high VA @ 16G
-     */
-    [VM_MMAP_STACK] = {VMREGION_VALID, stack_bot, stack_top, PROT_MEMTYPE_NORMAL, PROT_RW_RWX, BOT_OF_STACK_PA},
-
-    /* re-map vector_base_addr to some non-executable mapping of the vector table
-     * which can be used by the test harness to update the vtable at runtime
-     *
-     * if the pagetable is shared between threads, we have to map the entire range
-     */
-    [VM_MMAP_VTABLE] = {VMREGION_VALID, vtable_bot, vtable_top, PROT_MEMTYPE_NORMAL, PROT_RW_RWX, vector_base_pa},
   }};
 
-  update_table_from_vmregion_map(root_ptable, map);
+  update_table_from_vmregion_map(root_ptable, harness);
+  TRACE_PTABLE("updated harness @ %p\n", root_ptable);
 
   if (! is_test) {
-    if (DEBUG && ENABLE_DEBUG_PTABLE_SET_RANGE) {
+    if (DEBUG && DEBUG_PTABLE) {
       debug("table:\n");
       vmm_dump_table(root_ptable);
     }

@@ -25,6 +25,7 @@
 #include "config.h"
 #include "re.h"
 #include "driver.h"
+#include "stack.h"
 
 const char* version_string(void);
 

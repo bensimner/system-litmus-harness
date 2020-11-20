@@ -66,7 +66,8 @@ typedef enum {
   VM_HEAP,
   VM_TESTDATA,
   VM_MMAP_HARNESS,
-  VM_MMAP_STACK,
+  VM_MMAP_STACK_EL0,
+  VM_MMAP_STACK_EL1,
   VM_MMAP_VTABLE,
 } VMRegionTag;
 
@@ -166,6 +167,11 @@ void vmm_walk_table(uint64_t* root, walker_cb_t* cb_f);
 /* MMU control */
 void vmm_mmu_off(void);
 void vmm_mmu_on(void);
+
+/* switch between virtual stack space and physical stack space
+ * for this current CPU */
+void switch_to_vm_stack(void);
+void switch_to_pys_stack(void);
 
 #define MMU_ON thread_infos[get_cpu()].mmu_enabled
 #define MMU_OFF (!thread_infos[get_cpu()].mmu_enabled)

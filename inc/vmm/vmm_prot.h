@@ -47,6 +47,7 @@
 #define PROT_RX_X (write_attrs((attrs_t){.AP=PROT_AP_RX_X}))
 #define PROT_RX_RX (write_attrs((attrs_t){.AP=PROT_AP_RX_RX}))
 #define PROT_RW_RWX (write_attrs((attrs_t){.AP=PROT_AP_RW_RWX}))
+#define PROT_RWX_R (write_attrs((attrs_t){.AP=PROT_AP_RWX_R}))
 #define PROT_MEMTYPE_DEVICE (write_attrs((attrs_t){.attr=PROT_ATTR_DEVICE_nGnRnE}))
 #define PROT_MEMTYPE_NORMAL (write_attrs((attrs_t){.attr=PROT_ATTR_NORMAL_RA_WA}))
 #define PROT_MEMTYPE_NONCACHING (write_attrs((attrs_t){.attr=PROT_ATTR_NORMAL_NC}))
