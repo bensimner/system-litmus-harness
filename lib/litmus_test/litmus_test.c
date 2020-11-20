@@ -345,7 +345,7 @@ static void run_thread(test_ctx_t* ctx, int cpu) {
      * we wait for them to have finished before continuing and trying to read
      * the PTEs
      */
-    BWAIT(vcpu, ctx->generic_vcpu_barrier, ctx->cfg->no_threads);
+    BWAIT(cpu, ctx->generic_cpu_barrier, NO_CPUS);
 
     litmus_test_run runs[batch_size];
     setup_run_data(ctx, vcpu, batch_start_idx, batch_end_idx, runs);
