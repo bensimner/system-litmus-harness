@@ -47,7 +47,7 @@ Example Usage:
 import sys
 import textwrap
 
-esr = sys.argv[1]
+esr = sys.argv[1].strip(": ")
 esr = int(esr, 16)
 
 
