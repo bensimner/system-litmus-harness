@@ -303,7 +303,7 @@ static void __vm_alloc_shared_2g_region(uint64_t* root_pgtable) {
      * 0x40000000 -> RAM_END
      *  where RAM_END is defined by the dtb
      */
-    [VM_MMAP_IO] = {VMREGION_VALID, 0x0, GiB, PROT_MEMTYPE_DEVICE, PROT_RW_RWX},
+    [VM_MMAP_IO] = {VMREGION_VALID, 0x0, GiB, PROT_MEMTYPE_DEVICE, PROT_RW_RW},
     /* linker .text section
      * this contains the harness, litmus and unittest code segments as well
      * as the initial boot segment that occurs before BOT_OF_TEXT
