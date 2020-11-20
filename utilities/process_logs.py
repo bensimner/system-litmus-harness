@@ -145,7 +145,7 @@ def read_func_addrs(root: pathlib.Path):
 
 def build_new_stack(stack, labels):
     addrs = stack.split(":")
-    addrs = [int(addr, 16) for addr in addrs if addr]
+    addrs = [int(addr, 16) for addr in addrs if addr.strip()]
     labels = [labels.find(addr) for addr in addrs]
     return "->".join(reversed(labels))
 
@@ -165,6 +165,12 @@ def build_msg(m, labels):
     new_msg = f"{style}CPU{cpu}:{level} [{new_stack}:{bold}{loc}{reset}{style}]\n\t{msg}{reset}\n\n"
     return new_msg
 
+
+def build_strace(m, labels):
+    indent = m.group("indent")
+    old_stack = m.group("addrs")
+    new_stack = build_new_stack(old_stack, labels)
+    return f"{indent}[ STRACE] {new_stack}"
 
 def forever(root):
     labels = read_func_addrs(root)
@@ -207,6 +213,14 @@ def forever(root):
                     print(repr(line))
                     raise
                 sys.stderr.write(msg)
+            else:
+                sys.stdout.write(line)
+        elif '[ STRACE]' in line:
+            m = re.fullmatch(r"(?P<indent>\s*)\[ STRACE\] (?P<addrs>.+)\s*", line)
+
+            if m:
+                msg = build_strace(m, labels)
+                sys.stdout.write(msg)
             else:
                 sys.stdout.write(line)
         else:
