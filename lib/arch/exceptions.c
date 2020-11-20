@@ -80,6 +80,7 @@ static void _print_stack_trace(uint64_t fp) {
 }
 
 void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
+  uint64_t spsr = read_sysreg(spsr_el1);
   uint64_t ec = esr >> 26;
   uint64_t iss = esr & BITMASK(26);
   uint64_t cpu = get_cpu();
@@ -88,6 +89,7 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
   printf("Unhandled Exception (CPU%d): \n", cpu);
   printf("  [VBAR: 0x%lx]\n", read_sysreg(VBAR_EL1));
   printf("  [Vector: 0x%lx (%s)]\n", vec, vec_names[vec]);
+  printf("  [FROM: EL%d]\n", BIT_SLICE(spsr, 3, 2));
   printf("  [EC: 0x%lx (%s)]\n", ec, ec_names[ec]);
   printf("  [ESR_EL1: 0x%lx]\n", esr);
   printf("  [FAR_EL1: 0x%lx]\n", read_sysreg(far_el1));
@@ -110,10 +112,8 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
    * typically it would be SP_EL0 but if we took an exception during a handler
    * then it might've been SP_EL1
    */
-  uint64_t spsr = read_sysreg(spsr_el1);
-  uint64_t splevel = spsr & 0b1;
   printf("  [STACK]\n");
-  if (splevel == 0) {
+  if (BIT(spsr, 0) == 0) {
     /* came from code using SP_EL0
      * and we are not using SP_EL0
      * so we can access it:
