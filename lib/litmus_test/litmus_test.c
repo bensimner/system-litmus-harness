@@ -364,7 +364,9 @@ static void run_thread(test_ctx_t* ctx, int cpu) {
 
       start_of_run(ctx, cpu, vcpu, i, j);
 
-      pre(&runs[bi]);
+      if (pre != NULL)
+        pre(&runs[bi]);
+
       switch_to_test_context(ctx, vcpu);
 
       /* this barrier must be last thing before running function */
