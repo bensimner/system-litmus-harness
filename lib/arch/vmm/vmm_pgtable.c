@@ -85,20 +85,7 @@
  * ---------------- BOT OF MEM 0x0000_0000
  */
 
-/* TODO: transfer this logic into a generic
- * debug(PTABLE_SET_RANGE, fmt, ...) func
- *
- * perhaps with a
- * START_DEBUG(PTABLE_SET_RANGE)
- *  { ... }
- * END_DEBUG(PTABLE_SET_RANGE)
- *
- * too
- */
-#define DEBUG_PTABLE_SET_RANGE(fmt, ...) \
-  if (ENABLE_DEBUG_PTABLE_SET_RANGE) { \
-      debug(fmt, __VA_ARGS__); \
-  }
+#define TRACE_PTABLE(...) DEBUG(DEBUG_PTABLE, __VA_ARGS__)
 
 uint64_t vmm_make_desc(uint64_t pa, uint64_t prot, int level) {
   desc_t final;
@@ -135,9 +122,9 @@ static void __ptable_set_range(uint64_t* root,
   uint64_t c = 0;
 
   if (unmap) {
-    DEBUG_PTABLE_SET_RANGE("unmap from %p -> %p\n", va_start, va_end);
+    TRACE_PTABLE("unmap from %p -> %p\n", va_start, va_end);
   } else {
-    DEBUG_PTABLE_SET_RANGE("map %p -> %p, prot=%p\n", va_start, va_end, prot);
+    TRACE_PTABLE("map %p -> %p, prot=%p\n", va_start, va_end, prot);
   }
 
 
@@ -160,7 +147,7 @@ static void __ptable_set_range(uint64_t* root,
         root, va, pa, unmap, prot,
         3);  // allocate 4k regions up to the first 2M region
 
-  DEBUG_PTABLE_SET_RANGE("allocated %ld lvl3 entries up to %p\n", c, va);
+  TRACE_PTABLE("allocated %ld lvl3 entries up to %p\n", c, va);
 
   for (c=0; !IS_ALIGNED(va, level1) && va+(1UL<<level2) <= va_end;
         va += (1UL << level2), pa += (1UL << level2), c++)
@@ -168,14 +155,14 @@ static void __ptable_set_range(uint64_t* root,
         root, va, pa, unmap, prot,
         2);  // allocate 2M regions up to the first 1G region
 
-  DEBUG_PTABLE_SET_RANGE("allocated %ld lvl2 entries up to %p\n", c, va);
+  TRACE_PTABLE("allocated %ld lvl2 entries up to %p\n", c, va);
 
   for (c=0; va < ALIGN_TO(va_end, level1) && va+(1UL << level1) <= va_end;
         va += (1UL << level1), pa += (1UL << level1), c++)
     set_block_or_page(root, va, pa, unmap, prot,
                                 1);  // Alloc as many 1G regions as possible
 
-  DEBUG_PTABLE_SET_RANGE("allocated %ld lvl1 entries up to %p\n", c, va);
+  TRACE_PTABLE("allocated %ld lvl1 entries up to %p\n", c, va);
 
   for (c=0; va < ALIGN_TO(va_end, level2) && va+(1UL << level2) <= va_end;
         va += (1UL << level2), pa += (1UL << level2), c++)
@@ -183,21 +170,21 @@ static void __ptable_set_range(uint64_t* root,
         root, va, pa, unmap, prot,
         2);  // allocate as much of what's left as 2MB regions
 
-  DEBUG_PTABLE_SET_RANGE("allocated %ld lvl2 entries up to %p\n", c, va);
+  TRACE_PTABLE("allocated %ld lvl2 entries up to %p\n", c, va);
 
   for (c=0; va < va_end;
         va += (1UL << level3), pa += (1UL << level3), c++)
     set_block_or_page(root, va, pa, unmap, prot,
                                 3);  // allocate whatever remains as 4k pages.
 
-  DEBUG_PTABLE_SET_RANGE("allocated %ld lvl3 entries up to %p\n", c, va);
+  TRACE_PTABLE("allocated %ld lvl3 entries up to %p\n", c, va);
 }
 
 static void ptable_map_range(uint64_t* root,
                       uint64_t pa_start,
                       uint64_t va_start, uint64_t va_end,
                       uint64_t prot) {
-    DEBUG_PTABLE_SET_RANGE("mapping from %p -> %p with translation to %p\n", va_start, va_end, pa_start);
+    TRACE_PTABLE("mapping from %p -> %p with translation to %p\n", va_start, va_end, pa_start);
     __ptable_set_range(root, pa_start, va_start, va_end, 0, prot);
 }
 
@@ -335,6 +322,7 @@ static void __vm_alloc_shared_2g_region(uint64_t* root_pgtable) {
   }};
 
   update_table_from_vmregion_map(root_pgtable, map);
+  TRACE_PTABLE("allocated map for %p\n", root_pgtable);
 
   /* save the first 1G mapping in the level1 table off
    * these are the PA mappings that all threads will share, even duirng tests
@@ -353,6 +341,7 @@ static uint64_t* __vm_alloc_base_map(void) {
   uint64_t* root_ptable = alloc(4096);
   valloc_memset(root_ptable, 0, 4096);
   __vm_alloc_shared_2g_region(root_ptable);
+  TRACE_PTABLE("allocated shared 2g @ %p\n", root_ptable);
 
   VMRegions extra_universal = {{
     /* each map also contains the testdata physical address space itself is mapped in the virtual space
@@ -368,10 +357,8 @@ static uint64_t* __vm_alloc_base_map(void) {
 
 static uint64_t* __vmm_alloc_table(uint8_t is_test) {
   uint64_t* root_ptable = __vm_alloc_base_map();
+  TRACE_PTABLE("allocated base @ %p\n", root_ptable);
   int cpu = get_cpu();
-
-  uint64_t stack_bot, stack_top;
-  uint64_t vtable_bot, vtable_top;
 
   if (is_test) {
     /* if in a test, then allocate the whole 1G entry to the stack */

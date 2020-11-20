@@ -14,54 +14,62 @@
  */
 
 /**
- * if -DENABLE_DEBUG_BWAITS=1 then --debug will
+ * if -DDEBUG_BWAITS=1 then --debug will
  * print out BWAIT() calls
  */
-#ifndef ENABLE_DEBUG_BWAITS
-   #define ENABLE_DEBUG_BWAITS 0
+#ifndef DEBUG_BWAITS
+   #define DEBUG_BWAITS 0
 #endif
 
 /**
- * if -DENABLE_DEBUG_ALLOCS=1 then --debug
+ * if -DDEBUG_ALLOCS=1 then --debug
  * will print out ALLOC_MANY() and ALLOC_ONE() calls
  *
  * this is enabled by default
  */
-#ifndef ENABLE_DEBUG_ALLOCS
-   #define ENABLE_DEBUG_ALLOCS 1
+#ifndef DEBUG_ALLOCS
+   #define DEBUG_ALLOCS 1
 #endif
 
 /**
- * if -DENABLE_DEBUG_CONCRETIZATION=1 then --debug
+ * if -DDEBUG_CONCRETIZATION=1 then --debug
  * will output information during concretization process
  * for debugging errors during concretization
  */
-#ifndef ENABLE_DEBUG_CONCRETIZATION
-   #define ENABLE_DEBUG_CONCRETIZATION 0
+#ifndef DEBUG_CONCRETIZATION
+   #define DEBUG_CONCRETIZATION 0
 #endif
 
 /**
- * if -DENABLE_DEBUG_LOCKS=1 then --debug
+ * if -DDEBUG_LOCKS=1 then --debug
  * will output information when taking a lock
  */
-#ifndef ENABLE_DEBUG_LOCKS
-   #define ENABLE_DEBUG_LOCKS 0
+#ifndef DEBUG_LOCKS
+   #define DEBUG_LOCKS 0
 #endif
 
 /**
- * if -DENABLE_DEBUG_DISABLE_WFE=1 then nop wfe/sev
+ * if -DDEBUG_DISABLE_WFE=1 then nop wfe/sev
  */
-#ifndef ENABLE_DEBUG_DISABLE_WFE
-   #define ENABLE_DEBUG_DISABLE_WFE 0
+#ifndef DEBUG_DISABLE_WFE
+   #define DEBUG_DISABLE_WFE 0
 #endif
 
 /**
- * if -DENABLE_DEBUG_PTABLE_SET_RANGE=1 then
+ * if -DDEBUG_PTABLE=1 then
  * pagetable range set functions will
  * dump more information
  */
-#ifndef ENABLE_DEBUG_PTABLE_SET_RANGE
-   #define ENABLE_DEBUG_PTABLE_SET_RANGE 0
+#ifndef DEBUG_PTABLE
+   #define DEBUG_PTABLE 0
+#endif
+
+/**
+ * if -DDEBUG_TRACE_RUN_LOOP=1 then
+ * each step of the main run loop will be traced
+ */
+#ifndef DEBUG_TRACE_RUN_LOOP
+   #define DEBUG_TRACE_RUN_LOOP 0
 #endif
 
 #endif /* DEBUG_FLAGS_H */

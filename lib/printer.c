@@ -259,6 +259,8 @@ void __print_frame_unwind(char* out, int skip) {
       out = sprintf(out, ":");
     }
   }
+
+  out = sprintf(out, ""); /* put a NUL at the end always, even if no frames */
 }
 
 /** print buffer used for the stack output
@@ -270,6 +272,15 @@ void printf_with_fileloc(const char* level, int mode, const char* filename, cons
   int cpu = get_cpu();
   lock(&__PR_VERB_LOCK);
   __print_frame_unwind(__debug_frame_buf, 1);
+
+  if (strlen(__debug_frame_buf) > 1024) {
+    /* can't use fail() here
+     * so call abort() manually */
+    printf("! printf_with_fileloc: overflow, unwound frame string too large.\n");
+    raise_to_el1();
+    abort();
+  }
+
   sprintf(__verbose_print_buf, "CPU%d:%s:[%s:%s:%d (%s)] %s", cpu, level, __debug_frame_buf, filename, line, func, fmt);
 
   if (strlen(__verbose_print_buf) > 1024) {
@@ -285,23 +296,6 @@ void printf_with_fileloc(const char* level, int mode, const char* filename, cons
   vprintf(mode, __verbose_print_buf, ap);
   va_end(ap);
   unlock(&__PR_VERB_LOCK);
-}
-
-void _debug(const char* filename, const int line, const char* func, const char* fmt, ...) {
-  if (DEBUG) {
-    int cpu = get_cpu();
-    lock(&__PR_VERB_LOCK);
-    sprintf(__verbose_print_buf, "[%s:%d %s (CPU%d)] %s", filename, line, func, cpu, fmt);
-    if (strlen(__verbose_print_buf) > 1024) {
-      fail("! debug: overflow, format string too large.\n");
-    }
-
-    va_list ap;
-    va_start(ap, fmt);
-    vprintf(1, __verbose_print_buf, ap);
-    va_end(ap);
-    unlock(&__PR_VERB_LOCK);
-  }
 }
 
 void _fail(const char* filename, const int line, const char* func, const char* fmt, ...) {
