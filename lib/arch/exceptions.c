@@ -66,11 +66,11 @@ static const char* dabt_iss_dfsc[0x40] = {
 static char __exc_buffer[4096];
 static lock_t _EXC_PRINT_LOCK;
 
-static void _print_stack_trace(uint64_t fp) {
+static void _print_stack_trace(int el, uint64_t fp) {
   stack_t* stack = walk_stack_from((uint64_t*)fp);
 
   char* out = __exc_buffer;
-  out = sprintf(out, "  [ STRACE] ", stack->no_frames);
+  out = sprintf(out, "  [ STRACE SP_%d] ", el, stack->no_frames);
   for (int i = 0; i < stack->no_frames; i++) {
     out = sprintf(out, ":%p", stack->frames[i].ret);
   }
@@ -138,7 +138,13 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
    * will not contain anything meaningful but shouldn't cause any other problems
    */
   uint64_t fp = regs->gpr[29];
-  _print_stack_trace(fp);
+  _print_stack_trace(BIT(spsr, 0), fp);
+
+  if ((BIT(spsr, 0) == 1) && (BIT_SLICE(spsr, 3, 2) == 1)) {
+    /* if coming from EL1 using SP_EL1, assume this was a run-on from an exception
+     * using SP_EL0 */
+    _print_stack_trace(0, read_sysreg(sp_el0));
+  }
 
   printf("  \n");
   abort();
