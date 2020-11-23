@@ -271,7 +271,7 @@ static char __debug_frame_buf[1024];
 void printf_with_fileloc(const char* level, int mode, const char* filename, const int line, const char* func, const char* fmt, ...) {
   int cpu = get_cpu();
   lock(&__PR_VERB_LOCK);
-  __print_frame_unwind(__debug_frame_buf, 1);
+  __print_frame_unwind(__debug_frame_buf, 2);
 
   if (strlen(__debug_frame_buf) > 1024) {
     /* can't use fail() here
