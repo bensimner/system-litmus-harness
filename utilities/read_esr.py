@@ -266,6 +266,20 @@ iss_fields_structs = {
     0b100101: dabt_fields,
 }
 
+def human_number(n, bitlen):
+    nbits = bitlen
+    nhex = (3 + nbits) // 4
+    ndec = int(round(0.5 + nbits * 0.301))
+    nums = []
+
+    if bitlen == 1:
+        nums.append(f"{n}")
+    elif bitlen > 1:
+        nums.append(f"0b{n:>0{nbits}b}")
+        nums.append(f"0x{n:>0{nhex}x}")
+        nums.append(f"0d{n:>0{ndec}}")
+    return " / ".join(nums)
+
 ec = bitslice(esr, 31, 26)
 il = bit(esr, 25)
 iss = bitslice(esr, 24, 0)
@@ -279,7 +293,7 @@ print(f"EC: <{ec_desc}>")
 iss_fields = iss_fields_structs.get(ec)
 if iss_fields is not None:
     print()
-    print(f"ISS: 0b{iss:>025b}:")
+    print(f"ISS: {human_number(iss, 25)} :")
     for f, v in iss_fields.items():
         if isinstance(f, int):
             vbit = bit(iss, f)
@@ -306,7 +320,7 @@ if iss_fields is not None:
             fname = v
             field = None
 
-        prefix = f" [{fname}] {vbit:>0{bit_len}b}"
+        prefix = f" [{fname}] {human_number(vbit, bit_len)}"
         print(prefix, end="")
         if isinstance(field, str):
             print(f" <{field}>")
