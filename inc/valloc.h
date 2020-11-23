@@ -60,9 +60,9 @@ void valloc_freelist_compact_chunk(valloc_free_chunk* chunk);
 void init_valloc(void);
 
 #define ALLOC_MANY(ty, count) ({ \
-  void* v = alloc_with_alignment((sizeof(ty))*count, sizeof(ty)); \
-  DEBUG(DEBUG_ALLOCS, "alloc %ldx %s @ %p\n", count, #ty, v); \
-  v; \
+  void* v##__COUNTER__ = alloc_with_alignment((sizeof(ty))*count, sizeof(ty)); \
+  DEBUG(DEBUG_ALLOCS, "alloc %ldx %s @ %p\n", count, #ty, v##__COUNTER__); \
+  v##__COUNTER__; \
 })
 
 #define ALLOC_ONE(ty) ALLOC_MANY(ty, 1)
