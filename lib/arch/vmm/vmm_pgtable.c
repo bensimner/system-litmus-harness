@@ -230,8 +230,6 @@ static void update_table_from_vmregion_map(uint64_t* table, VMRegions regs) {
     if (! r.valid)
       continue;
 
-    printf("update_Table_from_vmregion %d => %p\n", i, r.va_start);
-
     /* sanity check for overlaps */
     if (r.va_start < r_prev.va_end)
       fail("! %o and %o virtual regions overlap\n", r, r_prev);
@@ -239,8 +237,6 @@ static void update_table_from_vmregion_map(uint64_t* table, VMRegions regs) {
       fail("! %o's region comes after a later region %o\n", r, r_prev);
 
     vmm_ptable_map(table, r);
-
-    printf("updated_Table_from_vmregion %d => %p\n", i, r.va_start);
   }
 }
 
@@ -414,12 +410,18 @@ static uint64_t* __vmm_alloc_table(uint8_t is_test) {
    *
    * we allocate 16 x 8M contiguous regions
    * but spread evenly throughout a 64G VA space located at 128G
+   *
+   * we don't actually allocate it here
+   * but rather allow vmm_ensure_level calls in the per-ASID test setup
+   * ensure enough of it is allocated for the given test run.
    */
+#if 0
   for (int i = 0 ; i < NR_REGIONS; i++) {
     uint64_t start_va = TESTDATA_MMAP_8M_VA_FROM_INDEX(i);
     uint64_t start_pa = TESTDATA_MMAP_8M_PA_FROM_INDEX(i);
     ptable_map_range(root_ptable, start_pa, start_va, start_va + REGION_SIZE, PROT_MEMTYPE_NORMAL | PROT_RW_RWX);
   }
+#endif
 
   return root_ptable;
 }
