@@ -22,7 +22,7 @@ uint8_t ONLY_SHOW_MATCHES = 0;
 char* collected_tests[100];
 int   collected_tests_count;
 
-sync_type_t LITMUS_SYNC_TYPE = SYNC_ALL;
+sync_type_t LITMUS_SYNC_TYPE = SYNC_ASID;
 aff_type_t LITMUS_AFF_TYPE = AFF_RAND;
 shuffle_type_t LITMUS_SHUFFLE_TYPE = SHUF_RAND;
 concretize_type_t LITMUS_CONCRETIZATION_TYPE = CONCRETE_RANDOM;
@@ -437,7 +437,7 @@ argdef_t ARGS = (argdef_t){
       "none:  no synchronization of the TLB (incompatible with --pgtable).\n"
       "all: always flush the entire TLB in-between tests.\n"
       "va: (EXPERIMENTAL) only flush test data VAs\n"
-      "asid: (EXPERIMENTAL) assign each test run an ASID and only flush that \n"
+      "asid: assign each test run an ASID and run in batches \n"
     ),
     ENUMERATE(
       "--aff",
