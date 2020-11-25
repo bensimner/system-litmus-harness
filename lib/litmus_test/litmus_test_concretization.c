@@ -132,7 +132,8 @@ void set_init_pte(test_ctx_t* ctx, var_idx_t varidx, run_idx_t run) {
   if (LITMUS_SYNC_TYPE == SYNC_ALL) {
     vmm_flush_tlb();
   } else if (LITMUS_SYNC_TYPE == SYNC_ASID) {
-    fail("--tlbsync=asid not supported\n");
+    /* do nothing
+     * ASIDs get cleaned up on batch creation */
   } else if (LITMUS_SYNC_TYPE == SYNC_VA) {
     vmm_flush_tlb_vaddr((uint64_t)va);
   }
