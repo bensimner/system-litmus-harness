@@ -16,7 +16,16 @@
  * as well as a reference to the static test configuration (the litmus_test_t)
  */
 struct test_ctx {
+
+  /* _total_ number of test executions per run
+   */
   run_idx_t no_runs;
+
+  /* size of each batch
+   * when not using ASIDs this must be 1
+   */
+  run_count_t batch_size;
+
   regions_t heap_memory;        /* pointers to set of regions */
   var_info_t* heap_vars;        /* set of heap variables: x, y, z etc */
   init_system_state_t* system_state;
@@ -52,7 +61,7 @@ const char* regname_from_idx(test_ctx_t* ctx, var_idx_t idx);
 
 run_count_t run_count_from_idx(test_ctx_t* ctx, run_idx_t idx);
 uint64_t* ptable_from_run(test_ctx_t* ctx, run_idx_t i);
-uint64_t asid_from_run_count(run_count_t r);
+uint64_t asid_from_run_count(test_ctx_t* ctx, run_count_t r);
 
 /* for loading var_info_t */
 void read_var_infos(const litmus_test_t* cfg, init_system_state_t* sys_st, var_info_t* infos, int no_runs);

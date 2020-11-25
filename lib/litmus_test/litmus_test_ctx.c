@@ -158,14 +158,14 @@ run_count_t run_count_from_idx(test_ctx_t* ctx, run_idx_t idx) {
   return ctx->shuffled_ixs_inverse[idx];
 }
 
-uint64_t asid_from_run_count(run_count_t r) {
+uint64_t asid_from_run_count(test_ctx_t* ctx, run_count_t r) {
   /* reserve ASID 0 for harness */
-  return 1 + (r % 254);
+  return 1 + (r % ctx->batch_size);
 }
 
 uint64_t* ptable_from_run(test_ctx_t* ctx, run_idx_t i) {
   run_count_t r = run_count_from_idx(ctx, i);
-  uint64_t asid = asid_from_run_count(r);
+  uint64_t asid = asid_from_run_count(ctx, r);
   return ctx->ptables[asid];
 }
 
