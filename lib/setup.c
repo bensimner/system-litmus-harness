@@ -71,7 +71,6 @@ void setup(char* fdtloc) {
   debug("--------------------------------\n");
 
   for (int i = 0; i < NO_CPUS; i++) {
-    uint64_t thr_stack_top = BOT_OF_STACK_PA+i*STACK_SIZE+STACK_SIZE;
     debug("CPU%d STACK EL0 : [%p -> %p]\n", i, STACK_PYS_THREAD_TOP_EL0(i), STACK_PYS_THREAD_BOT_EL0(i));
     debug("CPU%d STACK EL1 : [%p -> %p]\n", i, STACK_PYS_THREAD_TOP_EL1(i), STACK_PYS_THREAD_BOT_EL1(i));
   }
