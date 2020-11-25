@@ -56,6 +56,13 @@ static const char* dabt_iss_dfsc[0x40] = {
   [0b110000] = "DABT_DFSC_TLB",
 };
 
+/** a dispatch table, for per-CPU different exception vector handlers
+ *
+ * vtable[cpu][vector][EC] = *fn
+ */
+exception_vector_fn* vtable[4][4][64] = { NULL };
+exception_vector_fn* vtable_svc[4][64] = { NULL };  /* 64 SVC handlers */
+exception_vector_fn* vtable_pgfault[4][128] = { NULL };
 
 /* a buffer to write exception messages into
  * protected by _EXC_PRINT_LOCK
@@ -64,10 +71,12 @@ static const char* dabt_iss_dfsc[0x40] = {
  * may deadlock and cause weird issues here
  */
 static char __exc_buffer[4096];
+static char __exc_stack_buf[1024];
 static lock_t _EXC_PRINT_LOCK;
 
 static void _print_stack_trace(int el, uint64_t fp) {
-  stack_t* stack = walk_stack_from((uint64_t*)fp);
+  stack_t* stack = (stack_t*)__exc_stack_buf;
+  walk_stack_from((uint64_t*)fp, stack);
 
   char* out = __exc_buffer;
   out = sprintf(out, "  [ STRACE SP_%d] ", el, stack->no_frames);
@@ -75,8 +84,6 @@ static void _print_stack_trace(int el, uint64_t fp) {
     out = sprintf(out, ":%p", stack->frames[i].ret);
   }
   printf("%s\n", __exc_buffer);
-
-  free(stack);
 }
 
 void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {

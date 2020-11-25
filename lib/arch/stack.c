@@ -1,12 +1,12 @@
 #include "lib.h"
 
-stack_t* walk_stack(void) {
+void walk_stack(stack_t* buf) {
   /* with -fno-omit-frame-pointer the frame pointer gets put
    * in register x29 */
   uint64_t init_fp = read_reg(x29);
   uint64_t* fp = (uint64_t*)init_fp;
 
-  return walk_stack_from(fp);
+  walk_stack_from(fp, buf);
 }
 
 static uint64_t _stack_range_top(uint64_t fp) {
@@ -35,14 +35,7 @@ uint8_t stack_in_range(uint64_t fp, uint64_t stack_top) {
   return (stack_top - STACK_SIZE) <= fp && fp < stack_top;
 }
 
-stack_t* walk_stack_from(uint64_t* fp) {
-  /* have to disable debugging during this alloc
-   * otherwise there's a cycle in the alloc debug()s
-   */
-  uint8_t d = DEBUG;
-  DEBUG = 0;
-  stack_t* frames = alloc(4096);
-  DEBUG = d;
+void walk_stack_from(uint64_t* fp, stack_t* buf) {
   int i = 0;
 
   uint64_t init_fp = (uint64_t)fp;
@@ -62,8 +55,8 @@ stack_t* walk_stack_from(uint64_t* fp) {
     uint64_t* prev_fp  = (uint64_t*)*fp;
     uint64_t ret       = *(fp+1);
     fp = prev_fp;
-    frames->frames[i  ].next = (uint64_t)fp;
-    frames->frames[i++].ret  = ret;
+    buf->frames[i  ].next = (uint64_t)fp;
+    buf->frames[i++].ret  = ret;
 
     /* the frame pointer is initialised to 0
      * for all entry points */
@@ -72,6 +65,5 @@ stack_t* walk_stack_from(uint64_t* fp) {
     }
   }
 
-  frames->no_frames = i;
-  return frames;
+  buf->no_frames = i;
 }

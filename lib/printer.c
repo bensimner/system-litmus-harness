@@ -249,8 +249,15 @@ void verbose(const char* fmt, ...) {
   }
 }
 
+/** print buffer used for the stack output
+ * protected by __PR_VERB_LOCK
+ */
+static char __debug_frame_buf[1024];
+static char __debug_stack_buf[1024];
+
 void __print_frame_unwind(char* out, int skip) {
-  stack_t* stack = walk_stack();
+  stack_t* stack = (stack_t*)__debug_stack_buf;
+  walk_stack(stack);
 
   for (int i = skip; i < stack->no_frames; i++) {
     stack_frame_t* frame = &stack->frames[i];
@@ -262,12 +269,6 @@ void __print_frame_unwind(char* out, int skip) {
 
   out = sprintf(out, ""); /* put a NUL at the end always, even if no frames */
 }
-
-/** print buffer used for the stack output
- * protected by __PR_VERB_LOCK
- */
-static char __debug_frame_buf[1024];
-
 void printf_with_fileloc(const char* level, int mode, const char* filename, const int line, const char* func, const char* fmt, ...) {
   int cpu = get_cpu();
   lock(&__PR_VERB_LOCK);
