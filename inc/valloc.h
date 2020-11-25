@@ -11,16 +11,21 @@ typedef struct __free_chunk {
     struct __free_chunk* next;
 } valloc_free_chunk;
 
+#if DEBUG_ALLOC_META
 typedef struct {
-    uint64_t ts; /* timestamp of allocation */
+    uint64_t ts;    /* timestamp of allocation */
+    uint64_t where; /* address of ALLOC() call */
 } valloc_alloc_chunk_debug_metadata;
+#endif
 
 typedef struct __alloc {
     uint64_t start;
     uint64_t size;
     struct __alloc* prev;
     struct __alloc* next;
+#if DEBUG_ALLOC_META
     valloc_alloc_chunk_debug_metadata meta;
+#endif
 } valloc_alloc_chunk;
 
 
@@ -57,11 +62,14 @@ void valloc_freelist_allocate_free_chunk(uint64_t addr, uint64_t size);
 void valloc_freelist_remove_chunk(valloc_free_chunk* chunk);
 void valloc_freelist_compact_chunk(valloc_free_chunk* chunk);
 
+#define ALLOC_SIZE(p) \
+  (valloc_alloclist_find_alloc_chunk(&mem, (uint64_t)(p))->size)
+
 void init_valloc(void);
 
 #define ALLOC_MANY(ty, count) ({ \
   void* v##__COUNTER__ = alloc_with_alignment((sizeof(ty))*count, sizeof(ty)); \
-  DEBUG(DEBUG_ALLOCS, "alloc %ldx %s @ %p\n", count, #ty, v##__COUNTER__); \
+  DEBUG(DEBUG_ALLOCS, "alloc %ldx %s @ %p (%ld B)\n", count, #ty, v##__COUNTER__, ALLOC_SIZE(v##__COUNTER__)); \
   v##__COUNTER__; \
 })
 

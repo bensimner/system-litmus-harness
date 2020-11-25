@@ -72,4 +72,12 @@
    #define DEBUG_TRACE_RUN_LOOP 0
 #endif
 
+/**
+ * if -DDEBUG_ALLOC_META=1 then
+ * each ALLOC() stores some metadata about time/place of allocation
+ */
+#ifndef DEBUG_ALLOC_META
+   #define DEBUG_ALLOC_META 0
+#endif
+
 #endif /* DEBUG_FLAGS_H */
