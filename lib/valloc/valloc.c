@@ -53,7 +53,7 @@ static int is_pow2(uint64_t i) {
   return 0;
 }
 
-static uint64_t nearest_pow2(uint64_t i) {
+static uint64_t next_largest_pow2(uint64_t i) {
   int hi=0;
   while (i > 0) {
     hi++;
@@ -63,21 +63,12 @@ static uint64_t nearest_pow2(uint64_t i) {
   return (1UL << hi);
 }
 
-void* alloc_with_alignment(uint64_t size, uint64_t alignment) {
-  /* minimum allocation */
-  if (size < sizeof(valloc_free_chunk)) {
-    size = nearest_pow2(sizeof(valloc_free_chunk));
-    alignment = size;
-  }
-
-  LOCK(&__valloc_lock);
-
+static void* __alloc_with_alignment(uint64_t size, uint64_t alignment) {
   valloc_free_chunk* free_chunk = valloc_freelist_find_best(size, alignment);
   if (free_chunk != NULL) {
     free_chunk = valloc_freelist_split_alignment(free_chunk, size, alignment);
     valloc_alloclist_alloc(&mem, (uint64_t)free_chunk, size);
     valloc_freelist_remove_chunk(free_chunk);
-    UNLOCK(&__valloc_lock);
     return free_chunk;
   }
 
@@ -96,17 +87,43 @@ void* alloc_with_alignment(uint64_t size, uint64_t alignment) {
 
   mem.top = new_top;
   valloc_alloclist_alloc(&mem, allocated_space_vaddr, size);
-  UNLOCK(&__valloc_lock);
   return (void*)allocated_space_vaddr;
 }
 
-void* alloc(uint64_t size) {
-  if (! is_pow2(size))
-    size = nearest_pow2(size);
+void* alloc_with_alignment(uint64_t size, uint64_t alignment) {
+  LOCK(&__valloc_lock);
 
-  /* no point aligning on anything bigger than a whole page */
-  uint64_t alignment = size <= 4096 ? size : 4096;
-  return alloc_with_alignment(size, alignment);
+  /* minimum allocation */
+  if (size < sizeof(valloc_free_chunk)) {
+    size = next_largest_pow2(sizeof(valloc_free_chunk));
+  }
+
+  void* ptr = __alloc_with_alignment(size, alignment);
+  UNLOCK(&__valloc_lock);
+  return ptr;
+}
+
+void* alloc(uint64_t size) {
+  uint64_t alignment;
+
+  if (! is_pow2(size))
+    size = next_largest_pow2(size);
+
+  /* minimum allocation */
+  if (size < sizeof(valloc_free_chunk)) {
+    size = next_largest_pow2(sizeof(valloc_free_chunk));
+    alignment = size;
+  }
+
+  /* no point aligning on anything bigger than a 64-bit pointer
+   * for more explicit alignments use alloc_with_alignment
+   */
+  alignment = alignment <= 8 ? alignment : 8;
+
+  LOCK(&__valloc_lock);
+  void* ptr = __alloc_with_alignment(size, size);
+  UNLOCK(&__valloc_lock);
+  return ptr;
 }
 
 void free(void* p) {
