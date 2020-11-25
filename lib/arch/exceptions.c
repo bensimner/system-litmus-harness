@@ -119,7 +119,7 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
    * typically it would be SP_EL0 but if we took an exception during a handler
    * then it might've been SP_EL1
    */
-  printf("  [STACK]\n");
+  printf("  [STACK TRACE]\n");
   if (BIT(spsr, 0) == 0) {
     /* came from code using SP_EL0
      * and we are not using SP_EL0
