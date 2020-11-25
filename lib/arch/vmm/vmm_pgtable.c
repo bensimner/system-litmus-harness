@@ -363,10 +363,15 @@ static uint64_t* __vmm_alloc_table(uint8_t is_test) {
   int cpu = get_cpu();
 
   if (is_test) {
-    /* if in a test, then allocate the whole 1G entry to the stack */
+    /* if in a test, then all threads share the same translations
+     * so we must map the entire stack and vtable region
+     */
     VMRegions test = {{
-      [VM_MMAP_STACK_EL0] = {VMREGION_VALID, STACK_MMAP_BASE, STACK_MMAP_BASE + 1*GiB, PROT_MEMTYPE_NORMAL, PROT_RW_RWX, BOT_OF_STACK_PA},
-      [VM_MMAP_VTABLE]    = {VMREGION_VALID, VTABLE_MMAP_BASE, VTABLE_MMAP_BASE + 1*GiB, PROT_MEMTYPE_NORMAL, PROT_RW_RWX, vector_base_pa},
+      /* this is for EL0 and EL1 for all threads */
+      [VM_MMAP_STACK_EL0] = {VMREGION_VALID, STACK_MMAP_BASE, STACK_MMAP_BASE + 1*GiB, PROT_MEMTYPE_NORMAL, PROT_RW_RW, BOT_OF_STACK_PA},
+
+      /* VTABLE W+R mapping for all threads */
+      [VM_MMAP_VTABLE]    = {VMREGION_VALID, VTABLE_MMAP_BASE, VTABLE_MMAP_BASE + 1*GiB, PROT_MEMTYPE_NORMAL, PROT_RW_RW, vector_base_pa},
     }};
 
     update_table_from_vmregion_map(root_ptable, test);
@@ -377,8 +382,8 @@ static uint64_t* __vmm_alloc_table(uint8_t is_test) {
     vtable_top = vtable_bot + PAGE_SIZE;
     /* ideally EL0 would be R_RW permissions but AArch64 doesn't allow W at EL0 without W at EL1 */
     VMRegions per_thread_data = {{
-      [VM_MMAP_STACK_EL0] = {VMREGION_VALID, STACK_MMAP_THREAD_BOT_EL0(cpu), STACK_MMAP_THREAD_TOP_EL0(cpu), PROT_MEMTYPE_NORMAL, PROT_RW_RWX, STACK_PYS_THREAD_BOT_EL0(cpu)},
-      [VM_MMAP_STACK_EL1] = {VMREGION_VALID, STACK_MMAP_THREAD_BOT_EL1(cpu), STACK_MMAP_THREAD_TOP_EL1(cpu), PROT_MEMTYPE_NORMAL, PROT_RWX_R , STACK_PYS_THREAD_BOT_EL1(cpu)},
+      [VM_MMAP_STACK_EL0] = {VMREGION_VALID, STACK_MMAP_THREAD_BOT_EL0(cpu), STACK_MMAP_THREAD_TOP_EL0(cpu), PROT_MEMTYPE_NORMAL, PROT_RW_RW, STACK_PYS_THREAD_BOT_EL0(cpu)},
+      [VM_MMAP_STACK_EL1] = {VMREGION_VALID, STACK_MMAP_THREAD_BOT_EL1(cpu), STACK_MMAP_THREAD_TOP_EL1(cpu), PROT_MEMTYPE_NORMAL, PROT_RW_U , STACK_PYS_THREAD_BOT_EL1(cpu)},
       [VM_MMAP_VTABLE]    = {VMREGION_VALID, vtable_bot                    , vtable_top                    , PROT_RW_RWX                     , vector_base_pa},
     }};
 

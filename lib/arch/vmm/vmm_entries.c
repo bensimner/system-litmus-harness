@@ -5,6 +5,7 @@
 attrs_t read_attrs(uint64_t desc) {
   attrs_t attr = { 0 };
   attr.XN = BIT(desc, 54);
+  attr.XN = BIT(desc, 53);
   attr.AF = BIT(desc, 10);
   attr.SH = BIT_SLICE(desc, 9, 8);
   attr.AP = BIT_SLICE(desc, 7, 6);
@@ -57,7 +58,7 @@ desc_t read_desc(uint64_t entry, int level) {
 }
 
 uint64_t write_attrs(attrs_t attrs) {
-  return (attrs.XN << 54) | (attrs.AF << 10) | (attrs.SH << 8) | (attrs.AP << 6) | (attrs.NS << 5) | (attrs.attr << 2);
+  return ((uint64_t)attrs.XN << 54) | ((uint64_t)attrs.PXN << 53) | (attrs.AF << 10) | (attrs.SH << 8) | (attrs.AP << 6) | (attrs.NS << 5) | (attrs.attr << 2);
 }
 
 uint64_t write_desc(desc_t desc) {
