@@ -199,7 +199,7 @@ void concretize_random_one(test_ctx_t* ctx, const litmus_test_t* cfg, concretiza
     var->values[run] = (uint64_t*)st->var_sts[var->varidx].va;
   }
 
-  if (ENABLE_DEBUG_CONCRETIZATION) {
+  if (DEBUG_CONCRETIZATION) {
     debug("# allocate_random_one: tried %d times to allocate VAs\n", count);
 
     FOREACH_HEAP_VAR(ctx, var) {
