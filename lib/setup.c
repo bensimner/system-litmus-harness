@@ -71,8 +71,8 @@ void setup(char* fdtloc) {
   debug("--------------------------------\n");
 
   for (int i = 0; i < NO_CPUS; i++) {
-    debug("CPU%d STACK EL0 : [%p -> %p]\n", i, STACK_PYS_THREAD_TOP_EL0(i), STACK_PYS_THREAD_BOT_EL0(i));
-    debug("CPU%d STACK EL1 : [%p -> %p]\n", i, STACK_PYS_THREAD_TOP_EL1(i), STACK_PYS_THREAD_BOT_EL1(i));
+    debug("CPU%d STACK EL1 : [%p -> %p => %p -> %p]\n", i, STACK_MMAP_THREAD_TOP_EL1(i), STACK_MMAP_THREAD_BOT_EL1(i), STACK_PYS_THREAD_TOP_EL1(i), STACK_PYS_THREAD_BOT_EL1(i));
+    debug("CPU%d STACK EL0 : [%p -> %p => %p -> %p]\n", i, STACK_MMAP_THREAD_TOP_EL0(i), STACK_MMAP_THREAD_BOT_EL0(i), STACK_PYS_THREAD_TOP_EL0(i), STACK_PYS_THREAD_BOT_EL0(i));
   }
 
   vector_base_pa = (uint64_t)&el1_exception_vector_table_p0;
