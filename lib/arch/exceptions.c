@@ -109,7 +109,7 @@ void* default_handler(uint64_t vec, uint64_t esr, regvals_t* regs) {
     printf("  [  DFSC] 0x%lx (%s)\n", dfsc, dabt_iss_dfsc[dfsc]);
   }
   printf("  [REGISTERS]\n");
-  for (int i = 0; i < 30; i++) {
+  for (int i = 0; i < 31; i++) {
     printf("  [  x%d] 0x%lx\n", i, regs->gpr[i]);
   }
 

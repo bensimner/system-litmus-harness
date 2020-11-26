@@ -35,7 +35,7 @@ enum vec_entries {
 #define EC_DABT_EL1  0x25  /* Data Abort */
 
 typedef struct {
-    uint64_t gpr[30];
+    uint64_t gpr[31];
     uint64_t sp;
 } regvals_t;
 
