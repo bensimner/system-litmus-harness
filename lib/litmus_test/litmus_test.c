@@ -299,6 +299,13 @@ static void return_to_harness_context(test_ctx_t* ctx, uint64_t cpu, uint64_t vc
   restore_old_sync_exception_handlers(ctx, vcpu, handlers);
 }
 
+/** ensures all CPUs have an allocated affinity
+ */
+static void ensure_new_affinity(test_ctx_t* ctx, uint64_t cpu) {
+  if (LITMUS_AFF_TYPE != AFF_NONE)
+    allocate_affinities(ctx);
+}
+
 /** get this physical CPU's allocation to a vCPU (aka test thread)
  */
 static uint64_t get_affinity(test_ctx_t* ctx, uint64_t cpu) {
@@ -343,13 +350,14 @@ static void run_thread(test_ctx_t* ctx, int cpu) {
     i = count_to_run_index(ctx, j);
     run_count_t batch_start_idx = j;
     run_count_t batch_end_idx = MIN(batch_start_idx+ctx->batch_size, ctx->no_runs);
-    allocate_affinities(ctx);
-    /* since some vCPUs will skip over the tests
-     * it's possible for the test to finish before they get their affinity assignment
-     * but thinks it's for the *old* run
-     *
-     * this bwait ensures that does not happen and that all affinity assignments are per-run
-     */
+
+    if (cpu == 0)
+      /* make sure we only try assign new affinities once per batch
+       * CPU0 always gets to this point, so let it do it.
+       */
+      ensure_new_affinity(ctx, cpu);
+
+    /* wait for affinities to be assigned before continuing */
     BWAIT(cpu, ctx->generic_cpu_barrier, NO_CPUS);
 
     vcpu = get_affinity(ctx, cpu);
