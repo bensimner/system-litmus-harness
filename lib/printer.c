@@ -88,6 +88,10 @@ char* sputhex(char* out, uint64_t n) {
 
   for (i--; i >= 0; i--) {
     out = sputc(out, _hex[i]);
+
+    /* group 2-byte sequences */
+    if (((i % 4) == 0) && (i > 0))
+      out = sputc(out, '_');
   }
 
   return out;
