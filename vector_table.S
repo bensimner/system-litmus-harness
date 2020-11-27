@@ -45,9 +45,16 @@
 \name:
     save_all_registers
     mov x0, #\vec
-    mrs x1, ESR_EL1
+    mrs x1, esr_el1
     mov x2, sp
+
+    /* make fake stack frame
+     * which directs to the faulty instruction
+     */
+    mrs x3, elr_el1
+    stp x2, x3, [sp, #-0x10]!
     bl handle_exception
+    add sp, sp, #0x10
 
     restore_all_registers
     eret
