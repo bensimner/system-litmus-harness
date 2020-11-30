@@ -129,13 +129,11 @@ static void __ptable_set_range(uint64_t* root,
 
 
   if (!IS_ALIGNED(va_start, level3)) {
-    puts("! error: __ptable_set_range: got unaligned va_start\n");
-    abort();
+    fail("! error: __ptable_set_range: got unaligned va_start\n");
   }
 
   if (!IS_ALIGNED(va_end, level3)) {
-    puts("! error: __ptable_set_range: got unaligned va_end\n");
-    abort();
+    fail("! error: __ptable_set_range: got unaligned va_end\n");
   }
 
   uint64_t va = va_start; /* see above: must be aligned on a page */
