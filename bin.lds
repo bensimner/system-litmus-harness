@@ -54,7 +54,11 @@ SECTIONS
 
     .rodata   : { *(.rodata*) }
     .data     : { *(.data) }
-    .bss      : { *(.bss) }
+    .bss      : {
+        PROVIDE(__ld_begin_bss = .);
+        *(.bss)
+        PROVIDE(__ld_end_bss = .);
+    }
     . = ALIGN(4k);
     PROVIDE(__ld_end_data = .);
 

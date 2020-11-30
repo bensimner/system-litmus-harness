@@ -54,6 +54,19 @@ _start:
 	b 1b
 
 1:
+    /* zero the bss */
+	adrp	x10, __ld_begin_bss
+	add     x10, x10, :lo12:__ld_begin_bss
+	adrp	x11, __ld_end_bss
+	add     x11, x11, :lo12:__ld_end_bss
+1:
+    sub x12, x11, x10
+    cbz x12, 1f
+    strb wzr, [x10]
+    add x10, x10, #1
+    b 1b
+
+1:
 	/* setup CPU0 */
 	mov x29, #0    /* init frame pointer to NULL */
 	bl init_cpu
