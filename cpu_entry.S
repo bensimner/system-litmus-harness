@@ -108,6 +108,11 @@ init_cpu:
     /* x10 = 2MiB = STACK_SIZE */
 	mov x10, #2
 	lsl x10,x10,#20
+    /* align BOT_OF_STACK _up_ to 2M */
+    add x11, x10, x11
+    sub x15, x10, #1
+    neg x15, x15
+    and x11, x11, x15
     /* x15 = TOP_OF_STACK_EL0 */
     /* x16 = TOP_OF_STACK_EL1 */
 	add x15,x9,#1

@@ -41,7 +41,9 @@ void init_device(void* fdt) {
     TOP_OF_HEAP = BOT_OF_HEAP + TOTAL_HEAP;
 
     BOT_OF_STACK_PA = (uint64_t)&__ld_begin_stack;
+    BOT_OF_STACK_PA = ALIGN_UP(BOT_OF_STACK_PA, PMD_SHIFT);
     TOP_OF_STACK_PA = (uint64_t)&__ld_end_stack;
+    TOP_OF_STACK_PA = ALIGN_TO(TOP_OF_STACK_PA, PMD_SHIFT);
 
     BOT_OF_TESTDATA = TOP_OF_HEAP;
     TOP_OF_TESTDATA = TOP_OF_MEM;

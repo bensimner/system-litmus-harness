@@ -136,34 +136,58 @@ static void __ptable_set_range(uint64_t* root,
     fail("! error: __ptable_set_range: got unaligned va_end\n");
   }
 
-  uint64_t va = va_start; /* see above: must be aligned on a page */
+  uint64_t va = va_start;
   uint64_t pa = pa_start;
 
-  for (c=0; !IS_ALIGNED(va, level2) && va+(1UL << level3) <= va_end;
-        va += (1UL << level3), pa += (1UL << level3), c++)
+#define BOTH_ALIGNED(va, pa, level) \
+  (IS_ALIGNED((va), (level)) && IS_ALIGNED((pa), (level)))
+
+#define END_OF_REGION(va, level) \
+  (((va)+(1UL << (level))) > va_end)
+
+#define INCREMENT(va, pa, level) va += (1UL << (level)), pa += (1UL << (level))
+
+  /* allocate level3 entry until *both* va and pa
+   * are aligned on a level2, or until we've allocated everything
+   */
+  for (c=0; !BOTH_ALIGNED(va, pa, level2) && !END_OF_REGION(va, level3);
+        INCREMENT(va, pa, level3),  c++)
     set_block_or_page(
         root, va, pa, unmap, prot,
         3);  // allocate 4k regions up to the first 2M region
 
   TRACE_PTABLE("allocated %ld lvl3 entries up to %p\n", c, va);
 
-  for (c=0; !IS_ALIGNED(va, level1) && va+(1UL<<level2) <= va_end;
-        va += (1UL << level2), pa += (1UL << level2), c++)
+  /* Note:
+   * if PA has smaller alignment than VA
+   * for the level it's being inserted
+   * then things will fail
+   *
+   * e.g. for a level2 (2M) entry you cannot supply a 4k-aligned address
+   * it must be 2M aligned otherwise the lower bits will be cut off
+   * during the _hardware_ translation walk
+   */
+  if (IS_ALIGNED(va, level2) && !IS_ALIGNED(pa, level2) && !END_OF_REGION(va, level3)) {
+    fail("translation entry misalignment, va=%p, pa=%p. See above comment.\n", va, pa);
+  }
+
+  for (c=0; !BOTH_ALIGNED(va, pa, level1) && !END_OF_REGION(va, level2);
+        INCREMENT(va, pa, level2),  c++)
     set_block_or_page(
         root, va, pa, unmap, prot,
         2);  // allocate 2M regions up to the first 1G region
 
   TRACE_PTABLE("allocated %ld lvl2 entries up to %p\n", c, va);
 
-  for (c=0; va < ALIGN_TO(va_end, level1) && va+(1UL << level1) <= va_end;
-        va += (1UL << level1), pa += (1UL << level1), c++)
+  for (c=0; va < ALIGN_TO(va_end, level1) && !END_OF_REGION(va, level1);
+        INCREMENT(va, pa, level1), c++)
     set_block_or_page(root, va, pa, unmap, prot,
                                 1);  // Alloc as many 1G regions as possible
 
   TRACE_PTABLE("allocated %ld lvl1 entries up to %p\n", c, va);
 
-  for (c=0; va < ALIGN_TO(va_end, level2) && va+(1UL << level2) <= va_end;
-        va += (1UL << level2), pa += (1UL << level2), c++)
+  for (c=0; va < ALIGN_TO(va_end, level2) && !END_OF_REGION(va, level2);
+        INCREMENT(va, pa, level2), c++)
     set_block_or_page(
         root, va, pa, unmap, prot,
         2);  // allocate as much of what's left as 2MB regions
@@ -171,7 +195,7 @@ static void __ptable_set_range(uint64_t* root,
   TRACE_PTABLE("allocated %ld lvl2 entries up to %p\n", c, va);
 
   for (c=0; va < va_end;
-        va += (1UL << level3), pa += (1UL << level3), c++)
+        INCREMENT(va, pa, level3), c++)
     set_block_or_page(root, va, pa, unmap, prot,
                                 3);  // allocate whatever remains as 4k pages.
 

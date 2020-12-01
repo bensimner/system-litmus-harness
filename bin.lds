@@ -63,15 +63,16 @@ SECTIONS
     PROVIDE(__ld_end_data = .);
 
     /*
-     * we ensure at least 1 4K page for each thread's stack
+     * we ensure at least 2 2M pmd for each thread's stack
+     * (one for EL0 and one for EL1)
      *
-     * this space is loaded here but its virtual addr will be placed at
-     * at 2M at 16G
+     * see device.h
      */
-    . = ALIGN(4k);
+    . = ALIGN(4K);
     .stack : {
         PROVIDE(__ld_begin_stack = .);
-        . += 16k;
+        . += 2M;  /* alignment space */
+        . += 16M;
         PROVIDE(__ld_end_stack = .);
     }
 
