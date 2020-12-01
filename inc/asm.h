@@ -40,6 +40,10 @@
 
 /* stores and loads */
 void writeb(uint8_t byte, uint64_t addr);
+void writew(uint32_t word, uint64_t addr);
+
+uint8_t  readb(uint64_t addr);
+uint32_t readw(uint64_t addr);
 
 /* register read/write */
 #define read_sysreg(r) ({  \
