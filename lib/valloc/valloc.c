@@ -66,6 +66,7 @@ static uint64_t next_largest_pow2(uint64_t i) {
 static void* __alloc_with_alignment(uint64_t size, uint64_t alignment) {
   valloc_free_chunk* free_chunk = valloc_freelist_find_best(size, alignment);
   if (free_chunk != NULL) {
+    DEBUG(DEBUG_ALLOC_META, "for alloc size=%ld with alignment=0x%lx,best free chunk = %p\n", size, alignment, free_chunk);
     free_chunk = valloc_freelist_split_alignment(free_chunk, size, alignment);
     valloc_alloclist_alloc(&mem, (uint64_t)free_chunk, size);
     valloc_freelist_remove_chunk(free_chunk);
@@ -87,6 +88,7 @@ static void* __alloc_with_alignment(uint64_t size, uint64_t alignment) {
 
   mem.top = new_top;
   valloc_alloclist_alloc(&mem, allocated_space_vaddr, size);
+
   return (void*)allocated_space_vaddr;
 }
 
