@@ -288,6 +288,7 @@ static void switch_to_test_context(test_ctx_t* ctx, int vcpu, run_count_t r, exc
 }
 
 static void return_to_harness_context(test_ctx_t* ctx, uint64_t cpu, uint64_t vcpu, exception_handlers_refs_t* handlers) {
+  debug("return to harness context\n");
 
   /* have to restore the old handlers
    * before we're able to return to EL1
@@ -300,12 +301,9 @@ static void return_to_harness_context(test_ctx_t* ctx, uint64_t cpu, uint64_t vc
     raise_to_el1();
   }
 
-  debug("VCPU%d: return to harness context\n", vcpu);
   if (LITMUS_SYNC_TYPE == SYNC_ASID) {
     vmm_switch_ttable_asid(vmm_pgtables[cpu], 0);
   }
-
-  restore_old_sync_exception_handlers(ctx, vcpu, handlers);
 }
 
 /** ensures all CPUs have an allocated affinity
@@ -380,7 +378,7 @@ static void run_thread(test_ctx_t* ctx, int cpu) {
     BWAIT(cpu, ctx->generic_cpu_barrier, NO_CPUS);
 
     litmus_test_run runs[ctx->batch_size];
-    setup_run_data(ctx, vcpu, batch_start_idx, batch_end_idx, runs);
+    setup_run_data(ctx, vcpu, batch_start_idx, batch_end_idx, &runs[0]);
 
     exception_handlers_refs_t handlers = {NULL, NULL, NULL};
 
@@ -405,6 +403,8 @@ static void run_thread(test_ctx_t* ctx, int cpu) {
       func(&runs[bi]);
 
       if (post != NULL) {
+        /* TODO: why restore/set vbar here?
+         */
         restore_old_sync_exception_handlers(ctx, vcpu, &handlers);
         post(&runs[bi]);
         set_new_sync_exception_handlers(ctx, vcpu, &handlers);
@@ -424,11 +424,13 @@ run_thread_after_execution:
 }
 
 static void prefetch(test_ctx_t* ctx, run_idx_t i, run_count_t r) {
+  debug("prefetching for run %ld\n", r);
   for (var_idx_t v = 0; v < ctx->cfg->no_heap_vars; v++) {
     LOCK(&__harness_lock);
     uint64_t* va = ctx_heap_var_va(ctx, v, i);
     uint64_t is_valid = vmm_pte_valid(ptable_from_run(ctx, i), va);
     uint64_t* safe_va = (uint64_t*)SAFE_TESTDATA_VA((uint64_t)va);
+
     UNLOCK(&__harness_lock);
     if (randn() % 2 && is_valid && *safe_va != ctx_initial_heap_value(ctx, v)) {
       fail(
@@ -461,8 +463,6 @@ static void start_of_run(test_ctx_t* ctx, int cpu, int vcpu, run_idx_t i, run_co
 }
 
 static void end_of_run(test_ctx_t* ctx, int cpu, int vcpu, run_idx_t i, run_count_t r) {
-  BWAIT(vcpu, ctx->generic_vcpu_barrier, ctx->cfg->no_threads);
-
   /* only 1 thread should collect the results, else they will be duplicated */
   if (vcpu == 0) {
     uint64_t time = read_clk();
@@ -498,6 +498,7 @@ static void start_of_thread(test_ctx_t* ctx, int cpu) {
 }
 
 static void end_of_thread(test_ctx_t* ctx, int cpu) {
+  debug("end of thread\n");
   if (ENABLE_PGTABLE) {
     /* restore global non-test pgtable */
     vmm_switch_ttable(vmm_pgtables[cpu]);
@@ -509,7 +510,7 @@ static void end_of_thread(test_ctx_t* ctx, int cpu) {
 
 static void start_of_test(test_ctx_t* ctx) {
   ctx->concretization_st = concretize_init(LITMUS_CONCRETIZATION_TYPE, ctx, ctx->cfg, ctx->no_runs);
-  if (LITMUS_RUNNER_TYPE != RUNNER_EPHEMERAL) {
+  if (LITMUS_RUNNER_TYPE == RUNNER_ARRAY) {
     concretize(LITMUS_CONCRETIZATION_TYPE, ctx, ctx->cfg, ctx->concretization_st, ctx->no_runs);
     write_init_states(ctx, ctx->cfg, ctx->no_runs);
   }
