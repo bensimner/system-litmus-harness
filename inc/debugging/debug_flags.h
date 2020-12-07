@@ -80,4 +80,13 @@
    #define DEBUG_ALLOC_META 0
 #endif
 
+/**
+ * if -DDEBUG_TRACE_VMM_ENSURES=1 then
+ * each vmm_ensure_level() traces each access
+ * (Warning: lots of output!)
+ */
+#ifndef DEBUG_TRACE_VMM_ENSURES
+   #define DEBUG_TRACE_VMM_ENSURES 0
+#endif
+
 #endif /* DEBUG_FLAGS_H */
