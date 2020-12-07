@@ -75,6 +75,11 @@ void init_valloc(void);
 
 #define ALLOC_ONE(ty) ALLOC_MANY(ty, 1)
 
+#define FREE(p) ({ \
+  DEBUG(DEBUG_ALLOCS, "free %p (chk @ %p)\n", (p), valloc_alloclist_find_alloc_chunk(&mem, (uint64_t)(p))); \
+  free(p); \
+})
+
 void* alloc_with_alignment(uint64_t size, uint64_t alignment);
 void* alloc(uint64_t size);
 void* realloc(void* p, uint64_t new_size);

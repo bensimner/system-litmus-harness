@@ -218,8 +218,8 @@ void concretize_random_finalize(test_ctx_t* ctx, const litmus_test_t* cfg, concr
     for (int i = 0; i < NUM_PIN_LEVELS; i++) {
       var_st_t* var_st = &st->var_sts[varidx];
       pin_st_t* pin_st = &var_st->pins[i];
-      free(pin_st->vars);
+      FREE(pin_st->vars);
     }
   }
-  free(st);
+  FREE(st);
 }

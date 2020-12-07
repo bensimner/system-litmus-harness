@@ -527,5 +527,5 @@ static void end_of_test(test_ctx_t* ctx) {
 
   concretize_finalize(LITMUS_CONCRETIZATION_TYPE, ctx, ctx->cfg, ctx->no_runs, ctx->concretization_st);
   free_test_ctx(ctx);
-  free(ctx);
+  FREE(ctx);
 }

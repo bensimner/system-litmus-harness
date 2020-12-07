@@ -370,5 +370,5 @@ void restore_hotswapped_exception(uint64_t vector_slot, uint32_t* ptr) {
 
   flush_icache_vector_entries();
 
-  free(ptr);
+  FREE(ptr);
 }

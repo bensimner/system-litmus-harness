@@ -46,7 +46,7 @@ re_t* re_compile(char* s) {
 }
 
 void re_free(re_t* re) {
-    free(re);
+    FREE(re);
 }
 
 typedef struct {

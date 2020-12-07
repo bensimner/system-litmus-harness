@@ -170,28 +170,28 @@ uint64_t* ptable_from_run(test_ctx_t* ctx, run_idx_t i) {
 
 void free_test_ctx(test_ctx_t* ctx) {
   for (int t = 0; t < ctx->hist->limit; t++) {
-    free(ctx->hist->results[t]);
+    FREE(ctx->hist->results[t]);
   }
 
-  free(ctx->hist->lut);
-  free(ctx->hist);
+  FREE(ctx->hist->lut);
+  FREE(ctx->hist);
 
   for (int r = 0; r < ctx->cfg->no_regs; r++) {
-    free(ctx->out_regs[r]);
+    FREE(ctx->out_regs[r]);
   }
 
   for (int v = 0; v < ctx->cfg->no_heap_vars; v++) {
-    free(ctx->heap_vars[v].values);
+    FREE(ctx->heap_vars[v].values);
   }
 
-  free((int*)ctx->affinity);
-  free(ctx->shuffled_ixs_inverse);
-  free(ctx->shuffled_ixs);
-  free((bar_t*)ctx->start_barriers);
-  free((bar_t*)ctx->generic_cpu_barrier);
-  free((bar_t*)ctx->generic_vcpu_barrier);
-  free(ctx->ptables);
-  free(ctx->out_regs);
-  free(ctx->system_state);
-  free(ctx->heap_vars);
+  FREE((int*)ctx->affinity);
+  FREE(ctx->shuffled_ixs_inverse);
+  FREE(ctx->shuffled_ixs);
+  FREE((bar_t*)ctx->start_barriers);
+  FREE((bar_t*)ctx->generic_cpu_barrier);
+  FREE((bar_t*)ctx->generic_vcpu_barrier);
+  FREE(ctx->ptables);
+  FREE(ctx->out_regs);
+  FREE(ctx->system_state);
+  FREE(ctx->heap_vars);
 }

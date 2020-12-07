@@ -553,7 +553,7 @@ static void __vmm_free_pgtable(uint64_t* pgtable, int level) {
     }
   }
 
-  free(pgtable);
+  FREE(pgtable);
 }
 
 static void _free_test_pgtable_entry(int level, int is_leaf, uint64_t* parent, desc_t desc, va_range r) {
@@ -568,7 +568,7 @@ static void _free_test_pgtable_entry(int level, int is_leaf, uint64_t* parent, d
   }
 
   if (! is_leaf) {
-    free((uint64_t*)desc.table_addr);
+    FREE((uint64_t*)desc.table_addr);
   }
 }
 

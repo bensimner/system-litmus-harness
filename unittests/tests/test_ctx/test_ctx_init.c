@@ -40,7 +40,7 @@ void test_free_test_ctx_reuse(void) {
 
   init_test_ctx(&ctx, &big_test, 5000);
   free_test_ctx(&ctx);
-  free(p);
+  FREE(p);
 
   ASSERT(valloc_free_size() == space, "did not free all space");
   ASSERT(mem.freelist == NULL, "non-null freelist");
