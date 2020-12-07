@@ -411,6 +411,10 @@ static void run_thread(test_ctx_t* ctx, int cpu) {
       }
 
       return_to_harness_context(ctx, cpu, vcpu, &handlers);
+
+      /* wait for all threads to finish and return to the harness' context
+       * before attempting to collect results */
+      BWAIT(vcpu, ctx->generic_vcpu_barrier, ctx->cfg->no_threads);
       end_of_run(ctx, cpu, vcpu, i, j);
 run_thread_after_execution:
       BWAIT(cpu, ctx->generic_cpu_barrier, NO_CPUS);
