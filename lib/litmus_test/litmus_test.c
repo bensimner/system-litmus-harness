@@ -197,14 +197,14 @@ static void clean_run_data(test_ctx_t* ctx, uint64_t vcpu, run_count_t batch_sta
 
   for (idx = 0, r = batch_start_idx; r < batch_end_idx; r++, idx++) {
     for (var_idx_t v = 0; v < ctx->cfg->no_heap_vars; v++) {
-      free(runs[idx].tt_descs[v]);
-      free(runs[idx].tt_entries[v]);
+      FREE(runs[idx].tt_descs[v]);
+      FREE(runs[idx].tt_entries[v]);
     }
-    free(runs[idx].va);
-    free(runs[idx].pa);
-    free(runs[idx].out_reg);
-    free(runs[idx].tt_descs);
-    free(runs[idx].tt_entries);
+    FREE(runs[idx].va);
+    FREE(runs[idx].pa);
+    FREE(runs[idx].out_reg);
+    FREE(runs[idx].tt_descs);
+    FREE(runs[idx].tt_entries);
   }
 }
 
