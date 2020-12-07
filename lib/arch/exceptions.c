@@ -349,7 +349,7 @@ static void flush_icache_vector_entries(void) {
 
 uint32_t* hotswap_exception(uint64_t vector_slot, uint32_t data[32]) {
   uint32_t* p = alloc(sizeof(uint32_t) * 32);
-  uint32_t* vbar = (uint32_t*)(THR_VTABLE_VA(get_cpu()) + vector_slot);
+  uint32_t* vbar = (uint32_t*)(((uint64_t)THR_VTABLE_VA(get_cpu())) + vector_slot);
   debug("hotswap exception for vbar=%p slot 0x%lx : %p\n", vbar, vector_slot, &data[0]);
   for (int i = 0; i < 32; i++) {
     p[i] = *(vbar + i);
@@ -362,7 +362,7 @@ uint32_t* hotswap_exception(uint64_t vector_slot, uint32_t data[32]) {
 }
 
 void restore_hotswapped_exception(uint64_t vector_slot, uint32_t* ptr) {
-  uint32_t* vbar = (uint32_t*)(THR_VTABLE_VA(get_cpu()) + vector_slot);
+  uint32_t* vbar = (uint32_t*)(((uint64_t)THR_VTABLE_VA(get_cpu())) + vector_slot);
 
   for (int i = 0; i < 32; i++) {
     *(vbar + i) = ptr[i];
