@@ -46,30 +46,10 @@ Example Usage:
 
 import sys
 import textwrap
+from utils import bit, bitmask, bitslice, wrap, integer, human_number
 
 esr = sys.argv[1].strip(": ")
-esr = int(esr, 16)
-
-
-def bit(x, i):
-    return (x >> i) & 1
-
-
-def bitmask(n):
-    return (1 << n) - 1
-
-
-def bitslice(x, j, i):
-    return (x >> i) & bitmask(1 + j - i)
-
-
-def wrap(s, prefix):
-    n = len(prefix)
-    lines = s.splitlines()
-    lines = [l2.strip() + "." for l1 in lines for l2 in l1.split(".") if l2.strip()]
-    words = "\n".join(lines)
-    return textwrap.indent(words, prefix=" " * n)[n:]
-
+esr = integer(esr)
 
 ec_descs = {
     0b000000: "Unknown reason.",
@@ -265,20 +245,6 @@ iss_fields_structs = {
     0b100100: dabt_fields,
     0b100101: dabt_fields,
 }
-
-def human_number(n, bitlen):
-    nbits = bitlen
-    nhex = (3 + nbits) // 4
-    ndec = int(round(0.5 + nbits * 0.301))
-    nums = []
-
-    if bitlen == 1:
-        nums.append(f"{n}")
-    elif bitlen > 1:
-        nums.append(f"0b{n:>0{nbits}b}")
-        nums.append(f"0x{n:>0{nhex}x}")
-        nums.append(f"0d{n:>0{ndec}}")
-    return " / ".join(nums)
 
 ec = bitslice(esr, 31, 26)
 il = bit(esr, 25)

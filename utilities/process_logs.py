@@ -11,12 +11,26 @@ import sys
 import bisect
 import pathlib
 import argparse
+import functools
 import collections
+
+from utils import integer
 
 try:
     import colorama
 except ImportError:
     colorama = None
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--color", choices=["auto", "on", "none"], default="auto")
+parser.add_argument("--lma", default=0x4008_0000, type=integer)
+args = parser.parse_args()
+
+if args.color == "none":
+    colorama = None
+elif args.color == "auto":
+    if not sys.stdout.isatty():
+        colorama = None
 
 
 def overlaps(r1, r2):
@@ -66,12 +80,16 @@ class _Node:
 
 class FuncTree:
     def __init__(self):
-        self._tree = _Node(range(0x4008_0000, 0x8000_0000))
+        self._tree = _Node(range(args.lma, 0x8000_0000))
 
     def insert(self, r, label):
         self._tree.insert(_Node(r, label))
 
+    @functools.lru_cache()
     def find(self, addr):
+        if addr == 0:
+            return "NULL"
+
         try:
             return self._tree.search(addr)
         except ValueError as e:
@@ -118,7 +136,6 @@ def read_func_addrs(root: pathlib.Path):
 
     funcs = {}
 
-    prev_addr = None
     with elf_out.open(mode="r", encoding="utf-8") as f:
         for line in f:
             # only read .text section
@@ -126,16 +143,11 @@ def read_func_addrs(root: pathlib.Path):
             if line.startswith("Disassembly of section "):
                 if ".text" not in line:
                     break
-
             if line.endswith(">:\n"):
-                addr, _, _ = line.partition("<")
+                addr, _, funcname = line.partition("<")
+                funcname, _, _ = funcname.partition(">")
                 addr = int(addr.strip(), 16)
-                prev_addr = addr
-            elif line.endswith("():\n"):
-                name, _, _ = line.partition("():")
-                if prev_addr is not None:
-                    funcs[0x4008_0000 + prev_addr] = name
-                    prev_addr = None
+                funcs[args.lma + addr] = funcname
 
     if not funcs:
         raise ValueError("no function listing.  compile with DEBUG=1.")
@@ -145,9 +157,9 @@ def read_func_addrs(root: pathlib.Path):
 
 def build_new_stack(stack, labels):
     addrs = stack.split(":")
-    addrs = [int(addr, 16) for addr in addrs if addr.strip()]
-    labels = [labels.find(addr) for addr in addrs]
-    return "->".join(reversed(labels))
+    addrs = [addr for addr in addrs if addr.strip()]
+    labels = [f"<{addr}: {labels.find(int(addr, 16))}>" for addr in addrs]
+    return "->".join(labels)
 
 
 def build_msg(m, labels):
@@ -168,9 +180,11 @@ def build_msg(m, labels):
 
 def build_strace(m, labels):
     indent = m.group("indent")
+    el = m.group("el")
     old_stack = m.group("addrs")
     new_stack = build_new_stack(old_stack, labels)
-    return f"{indent}[ STRACE] {new_stack}"
+    return f"{indent}[ STRACE {el}] {new_stack}\n"
+
 
 def forever(root):
     labels = read_func_addrs(root)
@@ -212,11 +226,13 @@ def forever(root):
                     print(e)
                     print(repr(line))
                     raise
-                sys.stderr.write(msg)
+                sys.stdout.write(msg)
             else:
                 sys.stdout.write(line)
-        elif '[ STRACE]' in line:
-            m = re.fullmatch(r"(?P<indent>\s*)\[ STRACE\] (?P<addrs>.+)\s*", line)
+        elif "[ STRACE" in line:
+            m = re.fullmatch(
+                r"(?P<indent>\s*)\[ STRACE (?P<el>.+?)\] (?P<addrs>.+)\s*", line
+            )
 
             if m:
                 msg = build_strace(m, labels)
