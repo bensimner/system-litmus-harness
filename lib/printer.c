@@ -258,6 +258,7 @@ void verbose(const char* fmt, ...) {
  */
 static char __debug_frame_buf[1024];
 static char __debug_stack_buf[1024];
+static char __debug_time_buf[1024];
 
 void __print_frame_unwind(char* out, int skip) {
   stack_t* stack = (stack_t*)__debug_stack_buf;
@@ -273,6 +274,7 @@ void __print_frame_unwind(char* out, int skip) {
 
   out = sprintf(out, ""); /* put a NUL at the end always, even if no frames */
 }
+
 void printf_with_fileloc(const char* level, int mode, const char* filename, const int line, const char* func, const char* fmt, ...) {
   int cpu = get_cpu();
   lock(&__PR_VERB_LOCK);
@@ -286,7 +288,8 @@ void printf_with_fileloc(const char* level, int mode, const char* filename, cons
     abort();
   }
 
-  sprintf(__verbose_print_buf, "CPU%d:%s:[%s:%s:%d (%s)] %s", cpu, level, __debug_frame_buf, filename, line, func, fmt);
+  sprint_time(__debug_time_buf, read_clk(), SPRINT_TIME_HHMMSSCLK);
+  sprintf(__verbose_print_buf, "(%s) CPU%d:%s:[%s:%s:%d (%s)] %s", __debug_time_buf, cpu, level, __debug_frame_buf, filename, line, func, fmt);
 
   if (strlen(__verbose_print_buf) > 1024) {
     /* can't use fail() here
