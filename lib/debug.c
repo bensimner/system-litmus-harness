@@ -26,11 +26,22 @@ uint64_t __total_free(void) {
   return s;
 }
 
+uint64_t __total_alloc(void) {
+  uint64_t s = 0;
+  valloc_alloc_chunk* next = mem.chunk_alloc_list;
+  while (next != NULL) {
+    s += next->size;
+    next = next->next;
+  }
+  return s;
+}
+
 void debug_valloc_status(void) {
   if (DEBUG) {
     uint64_t free_chunks = __count_free_chunks();
     uint64_t free_mem = __total_free();
-    printf("(valloc)  top=0x%lx,  #free_chunks=0x%lx (with %p B)\n", mem.top, free_chunks, free_mem);
+    uint64_t total_alloc = __total_alloc();
+    printf("(valloc)  top=0x%lx, #total_used=0x%lx B #free_chunks=0x%lx (with %p B)\n", mem.top, total_alloc, free_chunks, free_mem);
   }
 }
 
