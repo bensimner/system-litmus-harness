@@ -388,20 +388,22 @@ static uint64_t* __vmm_alloc_table(uint8_t is_test) {
       [VM_MMAP_STACK_EL0] = {VMREGION_VALID, STACK_MMAP_BASE, STACK_MMAP_BASE + 1*GiB, PROT_MEMTYPE_NORMAL, PROT_RW_RW, BOT_OF_STACK_PA},
 
       /* VTABLE W+R mapping for all threads */
-      [VM_MMAP_VTABLE]    = {VMREGION_VALID, VTABLE_MMAP_BASE, VTABLE_MMAP_BASE + 1*GiB, PROT_MEMTYPE_NORMAL, PROT_RW_RW, vector_base_pa},
+      [VM_MMAP_VTABLE]    = {VMREGION_VALID, VTABLE_MMAP_BASE, VTABLE_MMAP_BASE + 4*NO_CPUS*KiB, PROT_MEMTYPE_NORMAL, PROT_RW_RW, vector_base_pa},
     }};
 
     update_table_from_vmregion_map(root_ptable, test);
     TRACE_PTABLE("updated test @ %p\n", root_ptable);
   } else {
-    uint64_t vtable_bot, vtable_top;
-    vtable_bot = VTABLE_MMAP_BASE + cpu*PAGE_SIZE;
-    vtable_top = vtable_bot + PAGE_SIZE;
+    uint64_t vtable_bot, vtable_top, vtable_pa;
+    vtable_bot = THR_VTABLE_VA(cpu);
+    vtable_top = THR_VTABLE_VA(cpu) + PAGE_SIZE;
+    vtable_pa = THR_VTABLE_PA(cpu);
+
     /* ideally EL0 would be R_RW permissions but AArch64 doesn't allow W at EL0 without W at EL1 */
     VMRegions per_thread_data = {{
       [VM_MMAP_STACK_EL0] = {VMREGION_VALID, STACK_MMAP_THREAD_BOT_EL0(cpu), STACK_MMAP_THREAD_TOP_EL0(cpu), PROT_MEMTYPE_NORMAL, PROT_RW_RW, STACK_PYS_THREAD_BOT_EL0(cpu)},
       [VM_MMAP_STACK_EL1] = {VMREGION_VALID, STACK_MMAP_THREAD_BOT_EL1(cpu), STACK_MMAP_THREAD_TOP_EL1(cpu), PROT_MEMTYPE_NORMAL, PROT_RW_U , STACK_PYS_THREAD_BOT_EL1(cpu)},
-      [VM_MMAP_VTABLE]    = {VMREGION_VALID, vtable_bot                    , vtable_top                    , PROT_RW_RWX                     , vector_base_pa},
+      [VM_MMAP_VTABLE]    = {VMREGION_VALID, vtable_bot                    , vtable_top                    , PROT_MEMTYPE_NORMAL, PROT_RW_RW, vtable_pa},
     }};
 
     update_table_from_vmregion_map(root_ptable, per_thread_data);
@@ -411,7 +413,7 @@ static uint64_t* __vmm_alloc_table(uint8_t is_test) {
   VMRegions harness = {{
     /* the harness itself maps all of memory starting @ 64G
      */
-    [VM_MMAP_HARNESS] = {VMREGION_VALID, HARNESS_MMAP_BASE, HARNESS_MMAP_BASE+TOTAL_MEM, PROT_MEMTYPE_NORMAL, PROT_RW_RWX, GiB},
+    [VM_MMAP_HARNESS] = {VMREGION_VALID, HARNESS_MMAP_BASE, HARNESS_MMAP_BASE+TOTAL_MEM, PROT_MEMTYPE_NORMAL, PROT_RW_RWX, BOT_OF_MEM},
   }};
 
   update_table_from_vmregion_map(root_ptable, harness);
