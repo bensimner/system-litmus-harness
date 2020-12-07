@@ -99,6 +99,9 @@ void pick_pin(test_ctx_t* ctx, concretization_st_t* st, var_info_t* rootvar, reg
 
   st->var_sts[pinnedvar->varidx].va = va_from_region_idx(ctx, pinnedvar, va_idx);
   st->var_sts[pinnedvar->varidx].picked = 1;
+
+
+  DEBUG(DEBUG_CONCRETIZATION, "picked! %s => %p\n", pinnedvar->name, st->var_sts[pinnedvar->varidx].va);
 }
 
 /** select the VA for a var that OWNs a region
@@ -107,6 +110,8 @@ void pick_one(test_ctx_t* ctx, concretization_st_t* st, var_info_t* var, own_lev
   region_idx_t va_begin = region_idx_bottom();
   region_idx_t va_top = region_idx_top();
   region_idx_t va_idx = rand_idx(va_begin, va_top);
+
+  DEBUG(DEBUG_CONCRETIZATION, "for var=%s,  between [%o, %o) = %o\n", var->name, TOSTR(region_idx_t, &va_begin), TOSTR(region_idx_t, &va_top), TOSTR(region_idx_t, &va_idx));
 
   if (var->init_region_offset) {
     uint64_t othervaridx = var->offset_var;
@@ -121,6 +126,9 @@ void pick_one(test_ctx_t* ctx, concretization_st_t* st, var_info_t* var, own_lev
 
   st->var_sts[var->varidx].va = va_from_region_idx(ctx, var, va_idx);
   st->var_sts[var->varidx].picked = 1;
+
+  DEBUG(DEBUG_CONCRETIZATION, "picked! %s => %p\n", var->name, st->var_sts[var->varidx].va);
+
 
   /* for each pinned var, pick a VA for it too */
   var_st_t* varst = &st->var_sts[var->varidx];

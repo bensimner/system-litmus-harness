@@ -75,9 +75,9 @@ void set_init_pte(test_ctx_t* ctx, var_idx_t varidx, run_idx_t run) {
   var_info_t* vinfo = &ctx->heap_vars[varidx];
   uint64_t* va = vinfo->values[run];
   uint64_t* ptable = ptable_from_run(ctx, run);
-  vmm_ensure_level(ptable, 3, (uint64_t)va);
+  uint64_t* pte = vmm_pte(ptable, vinfo->values[run]);
 
-  uint64_t* pte = vmm_pte(ptable, (uint64_t)va);
+  DEBUG(DEBUG_CONCRETIZATION, "initialising PTE for var '%s' with va=%p at pte=%p for pagetable rooted at %p\n", vinfo->name, va, pte, ptable);
 
   /* now if it was unmapped we can reset the last-level entry
   * to be invalid
@@ -152,6 +152,8 @@ void set_init_pte(test_ctx_t* ctx, var_idx_t varidx, run_idx_t run) {
 
     dsb();
   }
+
+  DEBUG(DEBUG_CONCRETIZATION, "init pte' for var '%s' on run %ld, va=%p on pgtable %p\n", vinfo->name, run, vinfo->values[run], ptable);
 }
 
 /** given a var and an index perform the necessary initialization
@@ -166,6 +168,7 @@ void set_init_var(test_ctx_t* ctx, var_idx_t varidx, run_idx_t run) {
   var_info_t* vinfo = &ctx->heap_vars[varidx];
 
   uint64_t* va = vinfo->values[run];
+  DEBUG(DEBUG_CONCRETIZATION, "set_init_var for run %ld for var '%s' with va = %p\n", run, vinfo->name, vinfo->values[run]);
   set_init_pte(ctx, varidx, run);
 
   if (ENABLE_PGTABLE) {

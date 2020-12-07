@@ -1,16 +1,18 @@
 #include "lib.h"
 
 void init_test_ctx(test_ctx_t* ctx, const litmus_test_t* cfg, int no_runs) {
+  uint64_t no_asids = 1 << ASID_SIZE;
+
   var_info_t* var_infos = ALLOC_MANY(var_info_t, cfg->no_heap_vars);
   uint64_t** out_regs = ALLOC_MANY(uint64_t*, cfg->no_regs);
   init_system_state_t* sys_st = ALLOC_ONE(init_system_state_t);
   bar_t* generic_cpu_bar = ALLOC_ONE(bar_t);
   bar_t* generic_vcpu_bar = ALLOC_ONE(bar_t);
-  bar_t* bars = ALLOC_MANY(bar_t, 1 << ASID_SIZE);
+  bar_t* bars = ALLOC_MANY(bar_t, no_asids);
   run_idx_t* shuffled = ALLOC_MANY(run_idx_t, no_runs);
   run_count_t* rev_lookup = ALLOC_MANY(run_count_t, no_runs);
   int* affinity = ALLOC_MANY(int, NO_CPUS);
-  uint64_t** ptables = ALLOC_MANY(uint64_t*, 1 << ASID_SIZE);
+  uint64_t** ptables = ALLOC_MANY(uint64_t*, no_asids);
 
   for (int v = 0; v < cfg->no_heap_vars; v++) {
     var_infos[v].values = ALLOC_MANY(uint64_t*, no_runs);
