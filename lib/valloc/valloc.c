@@ -99,6 +99,10 @@ void* alloc_with_alignment(uint64_t size, uint64_t alignment) {
   }
 
   void* ptr = __alloc_with_alignment(size, alignment);
+
+  /* always zero */
+  valloc_memset(ptr, 0, size);
+
   UNLOCK(&__valloc_lock);
   return ptr;
 }
@@ -122,6 +126,10 @@ void* alloc(uint64_t size) {
 
   LOCK(&__valloc_lock);
   void* ptr = __alloc_with_alignment(size, size);
+
+  /* always zero */
+  valloc_memset(ptr, 0, size);
+
   UNLOCK(&__valloc_lock);
   return ptr;
 }
@@ -174,7 +182,7 @@ static void __zero_all(void* p, uint64_t size) {
   }
 }
 
-void valloc_memset(void* p, uint64_t value, uint64_t size) {
+void valloc_memset(void* p, uint8_t value, uint64_t size) {
   if (value == 0 && DCZVA_ALLOW && MMU_ON && 0) {
     __zero_all(p, size);
     return;

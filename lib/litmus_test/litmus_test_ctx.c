@@ -13,7 +13,6 @@ void init_test_ctx(test_ctx_t* ctx, const litmus_test_t* cfg, int no_runs) {
   uint64_t** ptables = ALLOC_MANY(uint64_t*, 1 << ASID_SIZE);
 
   for (int v = 0; v < cfg->no_heap_vars; v++) {
-    valloc_memset(&var_infos[v], 0, sizeof(var_info_t));
     var_infos[v].values = ALLOC_MANY(uint64_t*, no_runs);
   }
 

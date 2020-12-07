@@ -80,7 +80,7 @@ void* alloc(uint64_t size);
 void* realloc(void* p, uint64_t new_size);
 
 void free(void* p);
-void valloc_memset(void* p, uint64_t value, uint64_t size);
+void valloc_memset(void* p, uint8_t value, uint64_t size);
 void valloc_memcpy(void* dest, void* src, uint64_t size);
 
 uint64_t valloc_free_size(void);

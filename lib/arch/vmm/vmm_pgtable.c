@@ -359,7 +359,6 @@ __vm_alloc_shared_2g_region_end:
 
 static uint64_t* __vm_alloc_base_map(void) {
   uint64_t* root_ptable = alloc_with_alignment(4096, 4096);
-  valloc_memset(root_ptable, 0, 4096);
   __vm_alloc_shared_2g_region(root_ptable);
   TRACE_PTABLE("allocated shared 2g @ %p\n", root_ptable);
 
