@@ -526,6 +526,17 @@ static void end_of_test(test_ctx_t* ctx) {
 
   trace("Finished test %s\n", ctx->cfg->name);
 
+  /* since we allocate ptables in batches
+   * and only free them on the next batch,
+   * we must make sure we free'd the pagetables in use
+   * for this batch as there is no next batch
+   */
+  for (uint64_t asid = 1; asid < 1+ctx->batch_size; asid++) {
+    if (ctx->ptables[asid] != NULL) {
+      vmm_free_test_pgtable(ctx->ptables[asid]);
+    }
+  }
+
   concretize_finalize(LITMUS_CONCRETIZATION_TYPE, ctx, ctx->cfg, ctx->no_runs, ctx->concretization_st);
   free_test_ctx(ctx);
   FREE(ctx);
