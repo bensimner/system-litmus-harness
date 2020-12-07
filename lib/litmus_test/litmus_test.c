@@ -288,8 +288,17 @@ static void switch_to_test_context(test_ctx_t* ctx, int vcpu, run_count_t r, exc
 }
 
 static void return_to_harness_context(test_ctx_t* ctx, uint64_t cpu, uint64_t vcpu, exception_handlers_refs_t* handlers) {
-  if (! ctx->cfg->start_els || ctx->cfg->start_els[vcpu] == 0)
+
+  /* have to restore the old handlers
+   * before we're able to return to EL1
+   * since we potentially overwrote the
+   * old SVC handler for the test
+   */
+  restore_old_sync_exception_handlers(ctx, vcpu, handlers);
+
+  if (! ctx->cfg->start_els || ctx->cfg->start_els[vcpu] == 0) {
     raise_to_el1();
+  }
 
   debug("VCPU%d: return to harness context\n", vcpu);
   if (LITMUS_SYNC_TYPE == SYNC_ASID) {
