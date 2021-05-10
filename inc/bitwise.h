@@ -13,6 +13,11 @@
 
 /* masks */
 #define BITMASK(n) (((uint64_t)(1) << (n)) - 1)
+#define BITSIZE(top, bot) ((top) - (bot) + 1)
+
+/* slices */
+#define ZERO_BIT_SLICE(n, top, bot) \
+    (n) & (BITMASK(BITSIZE(top, bot)) << bot)
 
 /* bitwise operations */
 #define BIT(x, i) (((x) >> (i)) & 0x1)

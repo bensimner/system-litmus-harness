@@ -438,6 +438,7 @@ static void set_new_ttable(uint64_t ttbr, uint64_t tcr, uint64_t mair) {
     printf("! err: set_new_ttable:  MMU already on!\n");
     abort();
   }
+  debug("setting new ttable ...\n");
   write_sysreg(ttbr, ttbr0_el1);
   write_sysreg(tcr, tcr_el1);
   write_sysreg(mair, mair_el1);
